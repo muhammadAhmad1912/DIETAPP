@@ -29,6 +29,8 @@ export const Icons = {
   check: 'checkmark-circle' as AppIconName,
   close: 'close' as AppIconName,
   remove: 'remove' as AppIconName,
+  edit: 'create-outline' as AppIconName,
+  trash: 'trash-outline' as AppIconName,
 } as const;
 
 interface IconProps {

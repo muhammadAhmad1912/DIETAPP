@@ -1,7 +1,9 @@
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { CompositeNavigationProp } from '@react-navigation/native';
 import { Screen } from '@/components/ui/Screen';
 import { AppText } from '@/components/ui/AppText';
 import { Card } from '@/components/ui/Card';
@@ -14,15 +16,18 @@ import { MealCard } from '@/components/meals/MealCard';
 import { useAppData } from '@/contexts/AppDataContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Radius, Spacing } from '@/theme/tokens';
-import type { RootStackParamList } from '@/types/navigation';
-import { friendlyDateLabel } from '@/utils/dates';
+import type { MainTabParamList, RootStackParamList } from '@/types/navigation';
 import { progressRatio } from '@/utils/nutrition';
+
+type DashboardNav = CompositeNavigationProp<
+  BottomTabNavigationProp<MainTabParamList, 'Dashboard'>,
+  NativeStackNavigationProp<RootStackParamList>
+>;
 
 export function DashboardScreen() {
   const { colors } = useTheme();
-  const navigation =
-    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { today, goals, profile, addWater, selectedDate } = useAppData();
+  const navigation = useNavigation<DashboardNav>();
+  const { today, goals, profile, addWater } = useAppData();
 
   if (!today || !goals || !profile) {
     return (
@@ -37,12 +42,22 @@ export function DashboardScreen() {
   return (
     <Screen scroll>
       <View style={styles.header}>
-        <View>
-          <AppText variant="label" muted>
-            {friendlyDateLabel(selectedDate)}
+        <Pressable
+          onPress={() => navigation.navigate('Inventory')}
+          style={({ pressed }) => [
+            styles.inventoryBtn,
+            {
+              backgroundColor: colors.cardCalories,
+              borderColor: colors.border,
+              opacity: pressed ? 0.88 : 1,
+            },
+          ]}
+        >
+          <Icon name={Icons.inventory} size={18} color={colors.primary} />
+          <AppText style={{ color: colors.primary, fontWeight: '800' }}>
+            Inventory
           </AppText>
-          <AppText variant="title">Today</AppText>
-        </View>
+        </Pressable>
         <Pressable
           onPress={() => navigation.navigate('AddMeal')}
           style={[styles.addBtn, { backgroundColor: colors.primary }]}
@@ -54,6 +69,9 @@ export function DashboardScreen() {
         </Pressable>
       </View>
 
+      <AppText variant="title" style={{ marginBottom: Spacing.md }}>
+        Today
+      </AppText>
       <Card tint={colors.cardCalories} style={styles.heroCard}>
         <ProgressRing
           progress={progressRatio(today.calories, goals.calorie_goal)}
@@ -147,7 +165,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  inventoryBtn: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 12,
+    borderRadius: Radius.full,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   addBtn: {
     paddingHorizontal: Spacing.md,

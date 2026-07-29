@@ -1,15 +1,18 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { Screen } from '@/components/ui/Screen';
 import { AppText } from '@/components/ui/AppText';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
 import { useInventory } from '@/contexts/InventoryContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { Spacing } from '@/theme/tokens';
 import type { RootStackParamList } from '@/types/navigation';
 
 export function InventoryItemDetailScreen() {
+  const { colors } = useTheme();
   const navigation = useNavigation();
   const route = useRoute<RouteProp<RootStackParamList, 'InventoryItemDetail'>>();
   const { items, updateItem, removeItem } = useInventory();
@@ -17,8 +20,34 @@ export function InventoryItemDetailScreen() {
     () => items.find((i) => i.id === route.params.itemId) ?? null,
     [items, route.params.itemId],
   );
-  const [quantity, setQuantity] = useState(item ? String(item.quantity) : '1');
+
+  const [name, setName] = useState('');
+  const [brand, setBrand] = useState('');
+  const [barcode, setBarcode] = useState('');
+  const [quantity, setQuantity] = useState('1');
+  const [unit, setUnit] = useState('pcs');
+  const [category, setCategory] = useState('');
+  const [calories, setCalories] = useState('');
+  const [protein, setProtein] = useState('');
+  const [carbs, setCarbs] = useState('');
+  const [fat, setFat] = useState('');
+  const [serving, setServing] = useState('100');
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!item) return;
+    setName(item.name);
+    setBrand(item.brand ?? '');
+    setBarcode(item.barcode ?? '');
+    setQuantity(String(item.quantity));
+    setUnit(item.unit);
+    setCategory(item.category ?? '');
+    setCalories(item.calories != null ? String(item.calories) : '');
+    setProtein(item.protein_g != null ? String(item.protein_g) : '');
+    setCarbs(item.carbs_g != null ? String(item.carbs_g) : '');
+    setFat(item.fat_g != null ? String(item.fat_g) : '');
+    setServing(item.serving_size_g != null ? String(item.serving_size_g) : '100');
+  }, [item]);
 
   if (!item) {
     return (
@@ -28,10 +57,26 @@ export function InventoryItemDetailScreen() {
     );
   }
 
-  const saveQty = async () => {
+  const save = async () => {
+    if (!name.trim()) {
+      Alert.alert('Name required');
+      return;
+    }
     setSaving(true);
     try {
-      await updateItem(item.id, { quantity: Number(quantity) || 0 });
+      await updateItem(item.id, {
+        name: name.trim(),
+        brand: brand.trim() || null,
+        barcode: barcode.trim() || null,
+        quantity: Number(quantity) || 0,
+        unit: unit.trim() || 'pcs',
+        category: category.trim() || null,
+        calories: calories ? Number(calories) : null,
+        protein_g: protein ? Number(protein) : null,
+        carbs_g: carbs ? Number(carbs) : null,
+        fat_g: fat ? Number(fat) : null,
+        serving_size_g: serving ? Number(serving) : null,
+      });
       navigation.goBack();
     } catch (e) {
       Alert.alert('Error', e instanceof Error ? e.message : 'Update failed');
@@ -42,42 +87,93 @@ export function InventoryItemDetailScreen() {
 
   return (
     <Screen scroll>
-      <AppText variant="title">{item.name}</AppText>
-      <AppText muted style={{ marginBottom: Spacing.lg }}>
-        {item.brand ?? 'No brand'}
-        {item.barcode ? ` · ${item.barcode}` : ''}
+      <AppText variant="title">Edit food</AppText>
+      <AppText muted style={{ marginBottom: Spacing.md }}>
+        Source: {item.source}
       </AppText>
 
-      <View style={styles.meta}>
-        <AppText>Source: {item.source}</AppText>
-        {item.calories != null ? (
-          <AppText muted>
-            {item.calories} kcal
-            {item.serving_size_g ? ` / ${item.serving_size_g}g` : ''}
-          </AppText>
-        ) : null}
-      </View>
+      <Card tint={colors.cardCalories} style={styles.section}>
+        <AppText variant="subtitle">Details</AppText>
+        <Input label="Name" value={name} onChangeText={setName} />
+        <Input label="Brand" value={brand} onChangeText={setBrand} />
+        <View style={styles.row}>
+          <View style={{ flex: 1 }}>
+            <Input
+              label="Quantity"
+              value={quantity}
+              onChangeText={setQuantity}
+              keyboardType="decimal-pad"
+            />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Input label="Unit" value={unit} onChangeText={setUnit} />
+          </View>
+        </View>
+        <Input label="Category" value={category} onChangeText={setCategory} />
+        <Input
+          label="Barcode"
+          value={barcode}
+          onChangeText={setBarcode}
+          keyboardType="number-pad"
+        />
+      </Card>
 
-      <Input
-        label="Quantity"
-        value={quantity}
-        onChangeText={setQuantity}
-        keyboardType="decimal-pad"
-        suffix={item.unit}
-      />
+      <Card tint={colors.cardProtein} style={styles.section}>
+        <AppText variant="subtitle">Nutrition (per serving)</AppText>
+        <Input
+          label="Serving size"
+          value={serving}
+          onChangeText={setServing}
+          keyboardType="decimal-pad"
+          suffix="g"
+          tint={colors.surface}
+        />
+        <Input
+          label="Calories"
+          value={calories}
+          onChangeText={setCalories}
+          keyboardType="decimal-pad"
+          suffix="kcal"
+          tint={colors.cardCalories}
+        />
+        <Input
+          label="Protein"
+          value={protein}
+          onChangeText={setProtein}
+          keyboardType="decimal-pad"
+          suffix="g"
+          tint={colors.cardProtein}
+        />
+        <Input
+          label="Carbs"
+          value={carbs}
+          onChangeText={setCarbs}
+          keyboardType="decimal-pad"
+          suffix="g"
+          tint={colors.cardCarbs}
+        />
+        <Input
+          label="Fat"
+          value={fat}
+          onChangeText={setFat}
+          keyboardType="decimal-pad"
+          suffix="g"
+          tint={colors.cardFat}
+        />
+      </Card>
 
       <Button
-        title="Save quantity"
-        onPress={saveQty}
+        title="Save changes"
+        onPress={save}
         loading={saving}
-        style={{ marginTop: Spacing.md }}
+        style={{ marginTop: Spacing.sm }}
       />
       <Button
-        title="Delete item"
+        title="Delete food"
         variant="danger"
-        style={{ marginTop: Spacing.sm }}
+        style={{ marginTop: Spacing.sm, marginBottom: Spacing.xl }}
         onPress={() => {
-          Alert.alert('Delete item?', item.name, [
+          Alert.alert('Delete food?', item.name, [
             { text: 'Cancel', style: 'cancel' },
             {
               text: 'Delete',
@@ -95,5 +191,6 @@ export function InventoryItemDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  meta: { gap: 4, marginBottom: Spacing.lg },
+  section: { gap: Spacing.sm, marginBottom: Spacing.md },
+  row: { flexDirection: 'row', gap: Spacing.sm },
 });

@@ -9,23 +9,34 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import type { CompositeNavigationProp } from '@react-navigation/native';
 import { Screen } from '@/components/ui/Screen';
 import { AppText } from '@/components/ui/AppText';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
+import { Icon, Icons } from '@/components/ui/Icon';
+import { InventoryAddSheet } from '@/components/ui/InventoryAddSheet';
+import { useAuth } from '@/contexts/AuthContext';
 import { useInventory } from '@/contexts/InventoryContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Radius, Spacing } from '@/theme/tokens';
 import type { InventoryItem } from '@/types/database';
-import type { RootStackParamList } from '@/types/navigation';
+import type { MainTabParamList, RootStackParamList } from '@/types/navigation';
+
+type InventoryNav = CompositeNavigationProp<
+  BottomTabNavigationProp<MainTabParamList, 'Inventory'>,
+  NativeStackNavigationProp<RootStackParamList>
+>;
 
 export function InventoryScreen() {
   const { colors } = useTheme();
-  const navigation =
-    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const navigation = useNavigation<InventoryNav>();
+  const { user } = useAuth();
   const { items, loading, syncing, error, sync, removeItem } = useInventory();
   const [query, setQuery] = useState('');
+  const [addOpen, setAddOpen] = useState(false);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -34,12 +45,13 @@ export function InventoryScreen() {
       (item) =>
         item.name.toLowerCase().includes(q) ||
         (item.brand?.toLowerCase().includes(q) ?? false) ||
-        (item.barcode?.includes(q) ?? false),
+        (item.barcode?.includes(q) ?? false) ||
+        (item.category?.toLowerCase().includes(q) ?? false),
     );
   }, [items, query]);
 
   const confirmDelete = (item: InventoryItem) => {
-    Alert.alert('Remove item?', item.name, [
+    Alert.alert('Delete food?', `Remove “${item.name}” from inventory?`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete',
@@ -49,45 +61,73 @@ export function InventoryScreen() {
     ]);
   };
 
+  const openAdd = () => {
+    if (!user) {
+      Alert.alert('Sign in required', 'Sign in to manage inventory.');
+      return;
+    }
+    setAddOpen(true);
+  };
+
   return (
     <Screen padded={false}>
       <View style={[styles.header, { paddingHorizontal: Spacing.md }]}>
         <View>
           <AppText variant="title">Inventory</AppText>
           <AppText muted variant="caption">
-            {items.length} item{items.length === 1 ? '' : 's'} · synced per user
+            {items.length} food{items.length === 1 ? '' : 's'} · pull to sync
           </AppText>
         </View>
-        <View style={styles.headerActions}>
-          <Button
-            title="Scan"
-            onPress={() =>
-              navigation.navigate('BarcodeScanner', { mode: 'inventory' })
-            }
-            style={{ paddingHorizontal: Spacing.md }}
-          />
+        <View style={[styles.countPill, { backgroundColor: colors.primaryMuted }]}>
+          <Icon name={Icons.inventory} size={16} color={colors.primary} />
+          <AppText style={{ color: colors.primary, fontWeight: '800' }}>
+            {items.length}
+          </AppText>
         </View>
       </View>
 
-      <View style={{ paddingHorizontal: Spacing.md, marginBottom: Spacing.sm }}>
-        <Input
-          placeholder="Search inventory"
-          value={query}
-          onChangeText={setQuery}
-        />
-        {error ? (
-          <AppText style={{ color: colors.danger, marginTop: Spacing.xs }}>
-            {error}
-          </AppText>
-        ) : null}
+      <View style={styles.searchRow}>
+        <View style={{ flex: 1 }}>
+          <Input
+            placeholder="Search foods…"
+            value={query}
+            onChangeText={setQuery}
+          />
+        </View>
+        <Pressable
+          accessibilityLabel="Add to inventory"
+          onPress={openAdd}
+          style={({ pressed }) => [
+            styles.addBtn,
+            {
+              backgroundColor: colors.primary,
+              transform: [{ scale: pressed ? 0.96 : 1 }],
+              shadowColor: colors.primary,
+            },
+          ]}
+        >
+          <Icon name={Icons.add} size={26} color={colors.textInverse} />
+        </Pressable>
       </View>
+
+      {error ? (
+        <AppText
+          style={{
+            color: colors.danger,
+            paddingHorizontal: Spacing.md,
+            marginBottom: Spacing.sm,
+          }}
+        >
+          {error}
+        </AppText>
+      ) : null}
 
       <FlatList
         data={filtered}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{
           paddingHorizontal: Spacing.md,
-          paddingBottom: Spacing.xxl,
+          paddingBottom: Spacing.xxl + 40,
           gap: Spacing.sm,
         }}
         refreshControl={
@@ -98,54 +138,93 @@ export function InventoryScreen() {
           />
         }
         ListEmptyComponent={
-          <Card>
-            <AppText variant="bodyBold">No inventory yet</AppText>
-            <AppText muted style={{ marginVertical: Spacing.sm }}>
-              Scan a barcode or add an item manually. Data syncs to your Supabase
-              account.
+          <Card tint={colors.cardCalories} style={styles.empty}>
+            <Icon name={Icons.inventory} size={36} color={colors.primary} />
+            <AppText variant="bodyBold" style={{ marginTop: Spacing.sm }}>
+              {query.trim() ? 'No matches' : 'No inventory yet'}
             </AppText>
-            <Button
-              title="Add item"
-              variant="secondary"
-              onPress={() => navigation.navigate('AddInventoryItem')}
-            />
+            <AppText muted style={{ textAlign: 'center', marginVertical: Spacing.sm }}>
+              {query.trim()
+                ? 'Try a different search.'
+                : 'Add foods manually or scan a barcode. Items sync to your account.'}
+            </AppText>
+            {!query.trim() ? (
+              <Button title="Add food" onPress={openAdd} style={{ alignSelf: 'stretch' }} />
+            ) : null}
           </Card>
         }
-        ListHeaderComponent={
-          filtered.length > 0 ? (
-            <Button
-              title="Add item manually"
-              variant="secondary"
-              onPress={() => navigation.navigate('AddInventoryItem')}
-              style={{ marginBottom: Spacing.sm }}
-            />
-          ) : null
-        }
         renderItem={({ item }) => (
-          <Pressable
-            onPress={() =>
-              navigation.navigate('InventoryItemDetail', { itemId: item.id })
-            }
-            onLongPress={() => confirmDelete(item)}
-            style={[
-              styles.row,
-              { backgroundColor: colors.surface, borderColor: colors.border },
-            ]}
-          >
-            <View style={{ flex: 1 }}>
-              <AppText variant="bodyBold" numberOfLines={1}>
-                {item.name}
+          <Card tint={colors.cardCalories} style={styles.itemCard} elevated={false}>
+            <Pressable
+              onPress={() =>
+                navigation.navigate('InventoryItemDetail', { itemId: item.id })
+              }
+              style={styles.itemMain}
+            >
+              <View style={[styles.itemIcon, { backgroundColor: colors.surface }]}>
+                <Icon name={Icons.calories} size={18} color={colors.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <AppText variant="bodyBold" numberOfLines={1}>
+                  {item.name}
+                </AppText>
+                <AppText muted variant="caption" numberOfLines={1}>
+                  {item.brand ? `${item.brand} · ` : ''}
+                  {item.calories != null
+                    ? `${Math.round(item.calories)} kcal`
+                    : 'No macros'}
+                  {item.barcode ? ` · ${item.barcode}` : ''}
+                </AppText>
+              </View>
+              <AppText style={{ color: colors.primary, fontWeight: '800' }}>
+                {Number(item.quantity)} {item.unit}
               </AppText>
-              <AppText muted variant="caption" numberOfLines={1}>
-                {item.brand ? `${item.brand} · ` : ''}
-                {item.barcode ?? 'No barcode'} · {item.source}
-              </AppText>
+            </Pressable>
+            <View style={styles.itemActions}>
+              <Pressable
+                onPress={() =>
+                  navigation.navigate('InventoryItemDetail', { itemId: item.id })
+                }
+                style={[styles.actionBtn, { backgroundColor: colors.surface }]}
+                hitSlop={6}
+              >
+                <Icon name={Icons.edit} size={18} color={colors.primary} />
+                <AppText
+                  variant="caption"
+                  style={{ color: colors.primary, fontWeight: '700' }}
+                >
+                  Edit
+                </AppText>
+              </Pressable>
+              <Pressable
+                onPress={() => confirmDelete(item)}
+                style={[styles.actionBtn, { backgroundColor: colors.surface }]}
+                hitSlop={6}
+              >
+                <Icon name={Icons.trash} size={18} color={colors.danger} />
+                <AppText
+                  variant="caption"
+                  style={{ color: colors.danger, fontWeight: '700' }}
+                >
+                  Delete
+                </AppText>
+              </Pressable>
             </View>
-            <AppText style={{ color: colors.primary, fontWeight: '700' }}>
-              {Number(item.quantity)} {item.unit}
-            </AppText>
-          </Pressable>
+          </Card>
         )}
+      />
+
+      <InventoryAddSheet
+        visible={addOpen}
+        onClose={() => setAddOpen(false)}
+        onAddManual={() => {
+          setAddOpen(false);
+          navigation.navigate('AddInventoryItem');
+        }}
+        onScanBarcode={() => {
+          setAddOpen(false);
+          navigation.navigate('BarcodeScanner', { mode: 'inventory' });
+        }}
       />
     </Screen>
   );
@@ -159,13 +238,68 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.sm,
     marginBottom: Spacing.md,
   },
-  headerActions: { flexDirection: 'row', gap: Spacing.sm },
-  row: {
+  countPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
-    padding: Spacing.md,
+    gap: 6,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radius.full,
+  },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  addBtn: {
+    width: 52,
+    height: 52,
     borderRadius: Radius.md,
-    borderWidth: StyleSheet.hairlineWidth,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 1,
+    shadowOpacity: 0.28,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 5,
+  },
+  empty: {
+    alignItems: 'center',
+    paddingVertical: Spacing.xl,
+  },
+  itemCard: {
+    padding: Spacing.sm,
+    gap: Spacing.sm,
+  },
+  itemMain: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.xs,
+    paddingTop: Spacing.xs,
+  },
+  itemIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: Radius.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  itemActions: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.xs,
+    paddingBottom: Spacing.xs,
+  },
+  actionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: Radius.sm,
   },
 });
