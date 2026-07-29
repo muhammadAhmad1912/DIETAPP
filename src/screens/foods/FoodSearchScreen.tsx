@@ -54,11 +54,13 @@ export function FoodSearchScreen() {
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'FoodSearch'>>();
   const selectForMeal = Boolean(route.params?.selectForMeal);
-  const { searchFoods, toggleFavorite, favorites, recentFoods } = useAppData();
+  const favoritesMode = route.params?.mode === 'favorites';
+  const { searchFoods, toggleFavoriteFood, favorites, recentFoods } =
+    useAppData();
   const { items: inventoryItems } = useInventory();
   const { addFood, adjustServingsByFoodId, getServingsForFood } = useMealDraft();
   const [query, setQuery] = useState('');
-  const [searchActive, setSearchActive] = useState(false);
+  const [searchActive, setSearchActive] = useState(favoritesMode);
   const [results, setResults] = useState<Food[]>([]);
   const cartRef = useRef<View>(null);
 
@@ -91,6 +93,19 @@ export function FoodSearchScreen() {
     return () => clearTimeout(handle);
   }, [query, searchFoods, inventoryItems, searchActive]);
 
+  const withFavoriteFlag = (food: Food): Food => {
+    if (food.is_favorite) return food;
+    const matched = favorites.some(
+      (f) =>
+        f.id === food.id ||
+        (food.barcode != null &&
+          food.barcode.length > 0 &&
+          f.barcode === food.barcode) ||
+        f.name.toLowerCase() === food.name.toLowerCase(),
+    );
+    return matched ? { ...food, is_favorite: true } : food;
+  };
+
   const onSelect = (food: Food) => {
     addFood(food);
     if (selectForMeal) {
@@ -105,11 +120,11 @@ export function FoodSearchScreen() {
     addFood(food);
   };
 
-  const suggestions = useMemo(
-    () => [
-      ...favorites,
-      ...recentFoods.filter((r) => !favorites.some((f) => f.id === r.id)),
-      ...inventoryItems
+  const sections = useMemo(
+    () => ({
+      favorites,
+      recent: recentFoods.filter((r) => !favorites.some((f) => f.id === r.id)),
+      inventory: inventoryItems
         .slice(0, 10)
         .map(inventoryToFood)
         .filter(
@@ -117,105 +132,185 @@ export function FoodSearchScreen() {
             !favorites.some((f) => f.name === inv.name) &&
             !recentFoods.some((f) => f.name === inv.name),
         ),
-    ],
+    }),
     [favorites, recentFoods, inventoryItems],
   );
+
+  const renderFood = (food: Food) => {
+    const flagged = withFavoriteFlag(food);
+
+    if (favoritesMode) {
+      return (
+        <FoodListItem
+          key={food.id}
+          food={flagged}
+          rightLabel={flagged.is_favorite ? 'Saved' : 'Favorite'}
+          onAdd={() => {
+            if (!flagged.is_favorite) void toggleFavoriteFood(flagged);
+          }}
+          onToggleFavorite={() => void toggleFavoriteFood(flagged)}
+        />
+      );
+    }
+
+    return (
+      <FoodListItem
+        key={food.id}
+        food={flagged}
+        quantity={getServingsForFood(food.id)}
+        cartRef={cartRef}
+        onAdd={() => (selectForMeal ? onAddStay(food) : onSelect(food))}
+        onAdjust={(delta) => adjustServingsByFoodId(food.id, delta)}
+        onToggleFavorite={() => void toggleFavoriteFood(flagged)}
+      />
+    );
+  };
 
   return (
     <Screen scroll>
       <AppText variant="title">
-        {selectForMeal ? 'Add to meal' : 'Food search'}
+        {favoritesMode
+          ? 'Add favorites'
+          : selectForMeal
+            ? 'Add to meal'
+            : 'Food search'}
       </AppText>
       <AppText muted style={{ marginTop: Spacing.xs }}>
-        Includes your inventory items
+        {favoritesMode
+          ? 'Tap the star or Favorite to save foods for quick access.'
+          : 'Includes your inventory items'}
       </AppText>
       <View style={{ marginTop: Spacing.md, gap: Spacing.sm }}>
         <Input
-          placeholder="Tap to search favorites, recent & inventory"
+          placeholder={
+            favoritesMode
+              ? 'Search foods to favorite…'
+              : 'Tap to search favorites, recent & inventory'
+          }
           value={query}
           onChangeText={setQuery}
           onFocus={() => setSearchActive(true)}
           onBlur={() => {
-            if (!query.trim()) setSearchActive(false);
+            if (!query.trim() && !favoritesMode) setSearchActive(false);
           }}
+          autoFocus={favoritesMode}
         />
-        <Button
-          title="Scan barcode"
-          variant="secondary"
-          onPress={() =>
-            navigation.navigate('BarcodeScanner', {
-              mode: selectForMeal ? 'meal' : 'inventory',
-            })
-          }
-        />
+        {!favoritesMode ? (
+          <Button
+            title="Scan barcode"
+            variant="secondary"
+            onPress={() =>
+              navigation.navigate('BarcodeScanner', {
+                mode: selectForMeal ? 'meal' : 'inventory',
+              })
+            }
+          />
+        ) : null}
       </View>
 
-      <View ref={cartRef} collapsable={false} style={styles.cartAnchor} />
+      {!favoritesMode ? (
+        <View ref={cartRef} collapsable={false} style={styles.cartAnchor} />
+      ) : null}
 
       {searchActive ? (
-        <>
-          <AppText variant="subtitle" style={styles.section}>
-            {query.trim() ? 'Results' : 'Favorites, recent & suggested'}
-          </AppText>
-          {query.trim() ? (
-            results.length === 0 ? (
+        query.trim() ? (
+          <>
+            <AppText variant="subtitle" style={styles.section}>
+              Results
+            </AppText>
+            {results.length === 0 ? (
               <Card style={styles.empty}>
                 <AppText muted>No foods found.</AppText>
               </Card>
             ) : (
-              results.map((food) => (
-                <FoodListItem
-                  key={food.id}
-                  food={food}
-                  quantity={getServingsForFood(food.id)}
-                  cartRef={cartRef}
-                  onAdd={() => (selectForMeal ? onAddStay(food) : onSelect(food))}
-                  onAdjust={(delta) => adjustServingsByFoodId(food.id, delta)}
-                  onToggleFavorite={
-                    food.id.startsWith('inv-')
-                      ? undefined
-                      : () => void toggleFavorite(food.id)
-                  }
-                />
-              ))
-            )
-          ) : suggestions.length === 0 ? (
-            <Card style={styles.empty}>
-              <AppText muted>No suggestions yet.</AppText>
-            </Card>
-          ) : (
-            suggestions.map((food) => (
-              <FoodListItem
-                key={food.id}
-                food={food}
-                quantity={getServingsForFood(food.id)}
-                cartRef={cartRef}
-                onAdd={() => (selectForMeal ? onAddStay(food) : onSelect(food))}
-                onAdjust={(delta) => adjustServingsByFoodId(food.id, delta)}
-                onToggleFavorite={
-                  food.id.startsWith('inv-')
-                    ? undefined
-                    : () => void toggleFavorite(food.id)
-                }
-              />
-            ))
-          )}
-        </>
+              results.map(renderFood)
+            )}
+          </>
+        ) : (
+          <>
+            {!favoritesMode ? (
+              <>
+                <View style={[styles.sectionHead, { marginTop: Spacing.lg }]}>
+                  <Icon name={Icons.star} size={18} color={colors.primary} />
+                  <AppText variant="subtitle">Favorites</AppText>
+                </View>
+                {sections.favorites.length === 0 ? (
+                  <Card tint={colors.cardCalories} style={styles.empty}>
+                    <AppText muted style={{ textAlign: 'center' }}>
+                      No favorites yet. Tap the star on any food to save it.
+                    </AppText>
+                  </Card>
+                ) : (
+                  sections.favorites.map(renderFood)
+                )}
+              </>
+            ) : (
+              <AppText muted style={{ marginTop: Spacing.lg, marginBottom: Spacing.sm }}>
+                Suggested foods — tap Favorite or the star to save.
+              </AppText>
+            )}
+
+            {sections.recent.length > 0 ? (
+              <>
+                <AppText variant="subtitle" style={styles.section}>
+                  Recent
+                </AppText>
+                {sections.recent.map(renderFood)}
+              </>
+            ) : null}
+
+            {sections.inventory.length > 0 ? (
+              <>
+                <AppText variant="subtitle" style={styles.section}>
+                  Inventory
+                </AppText>
+                {sections.inventory.map(renderFood)}
+              </>
+            ) : null}
+
+            {favoritesMode &&
+            sections.recent.length === 0 &&
+            sections.inventory.length === 0 ? (
+              <Card tint={colors.cardCalories} style={styles.empty}>
+                <AppText muted style={{ textAlign: 'center' }}>
+                  Type a food name above to find and favorite it.
+                </AppText>
+              </Card>
+            ) : null}
+          </>
+        )
       ) : (
         <Card tint={colors.cardCalories} style={styles.idle}>
           <Icon name={Icons.search} size={28} color={colors.primary} />
           <AppText variant="bodyBold">Start searching</AppText>
           <AppText muted style={{ textAlign: 'center' }}>
-            Tap the search bar to reveal favorites, recent foods, and suggestions.
+            Tap the search bar to reveal favorites, recent foods, and inventory.
           </AppText>
         </Card>
       )}
+
+      {favoritesMode ? (
+        <Button
+          title="Done"
+          onPress={() => {
+            if (navigation.canGoBack()) navigation.goBack();
+            else navigation.navigate('Favorites');
+          }}
+          style={{ marginTop: Spacing.lg, marginBottom: Spacing.xl }}
+        />
+      ) : null}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
   section: { marginTop: Spacing.lg, marginBottom: Spacing.sm },
+  sectionHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
   empty: { alignItems: 'center', paddingVertical: Spacing.lg },
   idle: {
     marginTop: Spacing.lg,

@@ -19,6 +19,7 @@ import { QuickAddScreen } from '@/screens/settings/QuickAddScreen';
 import { SettingsScreen } from '@/screens/settings/SettingsScreen';
 import { AddInventoryItemScreen } from '@/screens/inventory/AddInventoryItemScreen';
 import { InventoryItemDetailScreen } from '@/screens/inventory/InventoryItemDetailScreen';
+import { FavoritesScreen } from '@/screens/foods/FavoritesScreen';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAppData } from '@/contexts/AppDataContext';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -136,6 +137,11 @@ export function RootNavigator() {
               name="Settings"
               component={SettingsScreen}
               options={{ title: 'Settings' }}
+            />
+            <Stack.Screen
+              name="Favorites"
+              component={FavoritesScreen}
+              options={{ title: 'Favorites' }}
             />
           </>
         )}

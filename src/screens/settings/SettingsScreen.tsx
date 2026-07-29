@@ -260,9 +260,15 @@ export function SettingsScreen() {
       <Card style={styles.card}>
         <AppText variant="subtitle">Shortcuts</AppText>
         <Button
+          title="Favorites"
+          variant="secondary"
+          onPress={() => navigation.navigate('Favorites')}
+        />
+        <Button
           title="Weight tracker"
           variant="secondary"
           onPress={() => navigation.navigate('Weight')}
+          style={{ marginTop: Spacing.sm }}
         />
         <Button
           title="Inventory"

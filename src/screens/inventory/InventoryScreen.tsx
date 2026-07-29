@@ -19,10 +19,12 @@ import { Input } from '@/components/ui/Input';
 import { Icon, Icons } from '@/components/ui/Icon';
 import { InventoryAddSheet } from '@/components/ui/InventoryAddSheet';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAppData } from '@/contexts/AppDataContext';
 import { useInventory } from '@/contexts/InventoryContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Radius, Spacing } from '@/theme/tokens';
 import type { InventoryItem } from '@/types/database';
+import type { Food } from '@/types/models';
 import type { MainTabParamList, RootStackParamList } from '@/types/navigation';
 
 type InventoryNav = CompositeNavigationProp<
@@ -30,13 +32,44 @@ type InventoryNav = CompositeNavigationProp<
   NativeStackNavigationProp<RootStackParamList>
 >;
 
+function itemToFood(item: InventoryItem): Food {
+  const now = new Date().toISOString();
+  return {
+    id: `inv-${item.id}`,
+    name: item.name,
+    brand: item.brand,
+    barcode: item.barcode,
+    serving_size_g: item.serving_size_g ?? 100,
+    calories: item.calories ?? 0,
+    protein_g: item.protein_g ?? 0,
+    carbs_g: item.carbs_g ?? 0,
+    fat_g: item.fat_g ?? 0,
+    fiber_g: null,
+    source: 'custom',
+    is_favorite: false,
+    last_used_at: null,
+    created_at: now,
+    updated_at: now,
+  };
+}
+
 export function InventoryScreen() {
   const { colors } = useTheme();
   const navigation = useNavigation<InventoryNav>();
   const { user } = useAuth();
+  const { favorites, toggleFavoriteFood } = useAppData();
   const { items, loading, syncing, error, sync, removeItem } = useInventory();
   const [query, setQuery] = useState('');
   const [addOpen, setAddOpen] = useState(false);
+
+  const isFavoriteItem = (item: InventoryItem) =>
+    favorites.some(
+      (f) =>
+        (item.barcode != null &&
+          item.barcode.length > 0 &&
+          f.barcode === item.barcode) ||
+        f.name.toLowerCase() === item.name.toLowerCase(),
+    );
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -176,6 +209,28 @@ export function InventoryScreen() {
                   {item.barcode ? ` · ${item.barcode}` : ''}
                 </AppText>
               </View>
+              <Pressable
+                accessibilityLabel={
+                  isFavoriteItem(item) ? 'Remove from favorites' : 'Add to favorites'
+                }
+                onPress={(e) => {
+                  e.stopPropagation?.();
+                  void toggleFavoriteFood({
+                    ...itemToFood(item),
+                    is_favorite: isFavoriteItem(item),
+                  });
+                }}
+                hitSlop={10}
+                style={styles.starBtn}
+              >
+                <Icon
+                  name={isFavoriteItem(item) ? Icons.star : Icons.starOutline}
+                  size={22}
+                  color={
+                    isFavoriteItem(item) ? colors.primary : colors.textSecondary
+                  }
+                />
+              </Pressable>
               <AppText style={{ color: colors.primary, fontWeight: '800' }}>
                 {Number(item.quantity)} {item.unit}
               </AppText>
@@ -286,6 +341,9 @@ const styles = StyleSheet.create({
     borderRadius: Radius.sm,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  starBtn: {
+    padding: 4,
   },
   itemActions: {
     flexDirection: 'row',

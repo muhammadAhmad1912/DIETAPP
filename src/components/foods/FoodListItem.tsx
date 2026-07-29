@@ -205,7 +205,7 @@ export function FoodListItem({
                 <Icon name={Icons.add} size={16} color={colors.textInverse} />
               </Pressable>
             </View>
-          ) : (
+          ) : onAdd || onPress ? (
             <Pressable
               onPress={startAdd}
               style={[styles.addPill, { backgroundColor: colors.primaryMuted }]}
@@ -218,7 +218,7 @@ export function FoodListItem({
                 {rightLabel}
               </AppText>
             </Pressable>
-          )}
+          ) : null}
         </Animated.View>
       </View>
 

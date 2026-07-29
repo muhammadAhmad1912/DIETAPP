@@ -53,6 +53,8 @@ interface AppDataContextValue {
   addWater: (amount?: number) => Promise<void>;
   addWeight: (kg: number, notes?: string) => Promise<void>;
   toggleFavorite: (foodId: string) => Promise<void>;
+  /** Favorite/unfavorite any food (upserts inventory-sourced foods into the catalog first). */
+  toggleFavoriteFood: (food: Food) => Promise<void>;
   searchFoods: (query: string) => Promise<Food[]>;
   upsertFood: typeof localRepo.upsertFood;
   updateGoals: (goals: Partial<Goals>) => Promise<void>;
@@ -142,6 +144,45 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     [refresh],
   );
 
+  const toggleFavoriteFood = useCallback(
+    async (food: Food) => {
+      let foodId = food.id;
+      if (foodId.startsWith('inv-')) {
+        const catalog = await localRepo.getFoods();
+        const existing =
+          (food.barcode
+            ? catalog.find((f) => f.barcode === food.barcode)
+            : undefined) ??
+          catalog.find(
+            (f) =>
+              f.name.toLowerCase() === food.name.toLowerCase() &&
+              (f.brand ?? '') === (food.brand ?? ''),
+          );
+        if (existing) {
+          foodId = existing.id;
+        } else {
+          const created = await localRepo.upsertFood({
+            name: food.name,
+            brand: food.brand,
+            barcode: food.barcode,
+            serving_size_g: food.serving_size_g,
+            calories: food.calories,
+            protein_g: food.protein_g,
+            carbs_g: food.carbs_g,
+            fat_g: food.fat_g,
+            fiber_g: food.fiber_g,
+            source: food.source,
+            is_favorite: false,
+          });
+          foodId = created.id;
+        }
+      }
+      await localRepo.toggleFavorite(foodId);
+      await refresh();
+    },
+    [refresh],
+  );
+
   const updateGoals = useCallback(
     async (partial: Partial<Goals>) => {
       const current = await localRepo.getGoals();
@@ -189,6 +230,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       addWater,
       addWeight,
       toggleFavorite,
+      toggleFavoriteFood,
       searchFoods: localRepo.searchFoods.bind(localRepo),
       upsertFood: localRepo.upsertFood.bind(localRepo),
       updateGoals,
@@ -210,6 +252,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       addWater,
       addWeight,
       toggleFavorite,
+      toggleFavoriteFood,
       updateGoals,
       updateWaterGoal,
     ],

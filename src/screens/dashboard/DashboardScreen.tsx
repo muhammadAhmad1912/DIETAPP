@@ -17,6 +17,7 @@ import { useAppData } from '@/contexts/AppDataContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Radius, Spacing } from '@/theme/tokens';
 import type { MainTabParamList, RootStackParamList } from '@/types/navigation';
+import { friendlyDateLabel } from '@/utils/dates';
 import { progressRatio } from '@/utils/nutrition';
 
 type DashboardNav = CompositeNavigationProp<
@@ -27,7 +28,7 @@ type DashboardNav = CompositeNavigationProp<
 export function DashboardScreen() {
   const { colors } = useTheme();
   const navigation = useNavigation<DashboardNav>();
-  const { today, goals, profile, addWater } = useAppData();
+  const { today, goals, profile, addWater, selectedDate } = useAppData();
 
   if (!today || !goals || !profile) {
     return (
@@ -42,36 +43,30 @@ export function DashboardScreen() {
   return (
     <Screen scroll>
       <View style={styles.header}>
+        <View>
+          <AppText variant="label" muted>
+            {friendlyDateLabel(selectedDate)}
+          </AppText>
+          <AppText variant="title">Today</AppText>
+        </View>
         <Pressable
           onPress={() => navigation.navigate('Inventory')}
           style={({ pressed }) => [
             styles.inventoryBtn,
             {
-              backgroundColor: colors.cardCalories,
-              borderColor: colors.border,
-              opacity: pressed ? 0.88 : 1,
+              backgroundColor: colors.primary,
+              opacity: pressed ? 0.9 : 1,
+              shadowColor: colors.primary,
             },
           ]}
         >
-          <Icon name={Icons.inventory} size={18} color={colors.primary} />
-          <AppText style={{ color: colors.primary, fontWeight: '800' }}>
-            Inventory
-          </AppText>
-        </Pressable>
-        <Pressable
-          onPress={() => navigation.navigate('AddMeal')}
-          style={[styles.addBtn, { backgroundColor: colors.primary }]}
-        >
-          <Icon name={Icons.add} size={18} color={colors.textInverse} />
+          <Icon name={Icons.inventory} size={18} color={colors.textInverse} />
           <AppText style={{ color: colors.textInverse, fontWeight: '800' }}>
-            Meal
+            Inventory
           </AppText>
         </Pressable>
       </View>
 
-      <AppText variant="title" style={{ marginBottom: Spacing.md }}>
-        Today
-      </AppText>
       <Card tint={colors.cardCalories} style={styles.heroCard}>
         <ProgressRing
           progress={progressRatio(today.calories, goals.calorie_goal)}
@@ -165,7 +160,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.md,
   },
   inventoryBtn: {
     paddingHorizontal: Spacing.md,
@@ -174,15 +169,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  addBtn: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 12,
-    borderRadius: Radius.full,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
   },
   heroCard: {
     alignItems: 'center',

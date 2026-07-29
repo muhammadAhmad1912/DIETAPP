@@ -56,10 +56,19 @@ export function AddMealScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'AddMeal'>>();
-  const { recentFoods, favorites, addMeal, searchFoods } = useAppData();
+  const { recentFoods, favorites, addMeal, searchFoods, toggleFavoriteFood } =
+    useAppData();
   const { items: inventoryItems } = useInventory();
-  const { items, addFood, adjustServings, adjustServingsByFoodId, getServingsForFood, removeItem, clear, totals } =
-    useMealDraft();
+  const {
+    items,
+    addFood,
+    adjustServings,
+    adjustServingsByFoodId,
+    getServingsForFood,
+    removeItem,
+    clear,
+    totals,
+  } = useMealDraft();
 
   const cartRef = useRef<View>(null);
 
@@ -114,16 +123,29 @@ export function AddMealScreen() {
 
   const quickPicks = useMemo(() => {
     const invFoods = inventoryItems.slice(0, 8).map(inventoryToFood);
-    return [
-      ...favorites,
-      ...recentFoods.filter((r) => !favorites.some((f) => f.id === r.id)),
-      ...invFoods.filter(
+    return {
+      favorites,
+      recent: recentFoods.filter((r) => !favorites.some((f) => f.id === r.id)),
+      inventory: invFoods.filter(
         (inv) =>
           !favorites.some((f) => f.name === inv.name) &&
           !recentFoods.some((f) => f.name === inv.name),
       ),
-    ].slice(0, 12);
+    };
   }, [favorites, recentFoods, inventoryItems]);
+
+  const withFavoriteFlag = (food: Food): Food => {
+    if (food.is_favorite) return food;
+    const matched = favorites.some(
+      (f) =>
+        f.id === food.id ||
+        (food.barcode != null &&
+          food.barcode.length > 0 &&
+          f.barcode === food.barcode) ||
+        f.name.toLowerCase() === food.name.toLowerCase(),
+    );
+    return matched ? { ...food, is_favorite: true } : food;
+  };
 
   const mealLabel =
     MEAL_TYPES.find((m) => m.value === mealType)?.label ?? 'Meal';
@@ -279,43 +301,103 @@ export function AddMealScreen() {
                 <AppText muted>No matches for “{query.trim()}”.</AppText>
               </Card>
             ) : (
-              searchResults.slice(0, 10).map((food) => (
-                <FoodListItem
-                  key={food.id + (food.barcode ?? '')}
-                  food={food}
-                  quantity={getServingsForFood(food.id)}
-                  cartRef={cartRef}
-                  onAdd={() => {
-                    addFood(food);
-                    setQuery('');
-                  }}
-                  onAdjust={(delta) => adjustServingsByFoodId(food.id, delta)}
-                />
-              ))
+              searchResults.slice(0, 10).map((raw) => {
+                const food = withFavoriteFlag(raw);
+                return (
+                  <FoodListItem
+                    key={food.id + (food.barcode ?? '')}
+                    food={food}
+                    quantity={getServingsForFood(food.id)}
+                    cartRef={cartRef}
+                    onAdd={() => {
+                      addFood(food);
+                      setQuery('');
+                    }}
+                    onAdjust={(delta) => adjustServingsByFoodId(food.id, delta)}
+                    onToggleFavorite={() => void toggleFavoriteFood(food)}
+                  />
+                );
+              })
             )
           ) : (
             <>
-              <AppText variant="subtitle" style={{ marginBottom: Spacing.sm }}>
-                Inventory, favorites & recent
-              </AppText>
-              {quickPicks.length === 0 ? (
-                <Card style={styles.emptySearch}>
-                  <AppText muted>
-                    No suggestions yet. Type to search or scan a barcode.
+              <View style={styles.sectionHead}>
+                <Icon name={Icons.star} size={18} color={colors.primary} />
+                <AppText variant="subtitle">Favorites</AppText>
+              </View>
+              {quickPicks.favorites.length === 0 ? (
+                <Card tint={colors.cardCalories} style={styles.emptySearch}>
+                  <AppText muted style={{ textAlign: 'center' }}>
+                    No favorites yet. Tap the star on any food to save it here.
                   </AppText>
                 </Card>
               ) : (
-                quickPicks.map((food) => (
+                quickPicks.favorites.map((food) => (
                   <FoodListItem
                     key={food.id}
-                    food={food}
+                    food={{ ...food, is_favorite: true }}
                     quantity={getServingsForFood(food.id)}
                     cartRef={cartRef}
                     onAdd={() => addFood(food)}
                     onAdjust={(delta) => adjustServingsByFoodId(food.id, delta)}
+                    onToggleFavorite={() => void toggleFavoriteFood(food)}
                   />
                 ))
               )}
+
+              {quickPicks.recent.length > 0 ? (
+                <>
+                  <AppText
+                    variant="subtitle"
+                    style={{ marginTop: Spacing.md, marginBottom: Spacing.sm }}
+                  >
+                    Recent
+                  </AppText>
+                  {quickPicks.recent.slice(0, 6).map((food) => {
+                    const flagged = withFavoriteFlag(food);
+                    return (
+                      <FoodListItem
+                        key={food.id}
+                        food={flagged}
+                        quantity={getServingsForFood(food.id)}
+                        cartRef={cartRef}
+                        onAdd={() => addFood(food)}
+                        onAdjust={(delta) =>
+                          adjustServingsByFoodId(food.id, delta)
+                        }
+                        onToggleFavorite={() => void toggleFavoriteFood(flagged)}
+                      />
+                    );
+                  })}
+                </>
+              ) : null}
+
+              {quickPicks.inventory.length > 0 ? (
+                <>
+                  <AppText
+                    variant="subtitle"
+                    style={{ marginTop: Spacing.md, marginBottom: Spacing.sm }}
+                  >
+                    Inventory
+                  </AppText>
+                  {quickPicks.inventory.slice(0, 6).map((food) => {
+                    const flagged = withFavoriteFlag(food);
+                    return (
+                      <FoodListItem
+                        key={food.id}
+                        food={flagged}
+                        quantity={getServingsForFood(food.id)}
+                        cartRef={cartRef}
+                        onAdd={() => addFood(food)}
+                        onAdjust={(delta) =>
+                          adjustServingsByFoodId(food.id, delta)
+                        }
+                        onToggleFavorite={() => void toggleFavoriteFood(flagged)}
+                      />
+                    );
+                  })}
+                </>
+              ) : null}
             </>
           )}
         </View>
@@ -323,7 +405,7 @@ export function AddMealScreen() {
         <Card tint={colors.cardCalories} style={styles.searchHint}>
           <Icon name={Icons.search} size={26} color={colors.primary} />
           <AppText muted style={{ textAlign: 'center' }}>
-            Tap search to browse inventory, favorites, and recent foods.
+            Tap search to see favorites, recent, and inventory foods.
           </AppText>
         </Card>
       )}
@@ -414,5 +496,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.sm,
     paddingVertical: Spacing.lg,
+  },
+  sectionHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
   },
 });
