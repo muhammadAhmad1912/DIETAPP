@@ -1,0 +1,202 @@
+export const APP_NAME = 'Diet Tracker';
+
+export const DEFAULT_WATER_GOAL_ML = 2500;
+export const WATER_INCREMENT_ML = 250;
+
+export const ACTIVITY_LEVELS = [
+  {
+    value: 'sedentary' as const,
+    label: 'Sedentary',
+    description: 'Little or no exercise',
+    multiplier: 1.2,
+  },
+  {
+    value: 'light' as const,
+    label: 'Lightly active',
+    description: 'Light exercise 1–3 days/week',
+    multiplier: 1.375,
+  },
+  {
+    value: 'moderate' as const,
+    label: 'Moderately active',
+    description: 'Moderate exercise 3–5 days/week',
+    multiplier: 1.55,
+  },
+  {
+    value: 'active' as const,
+    label: 'Very active',
+    description: 'Hard exercise 6–7 days/week',
+    multiplier: 1.725,
+  },
+  {
+    value: 'very_active' as const,
+    label: 'Extra active',
+    description: 'Physical job or 2× training',
+    multiplier: 1.9,
+  },
+] as const;
+
+export const GOAL_OPTIONS = [
+  {
+    value: 'lose' as const,
+    label: 'Lose weight',
+    description: 'Calorie deficit',
+    calorieOffset: -500,
+  },
+  {
+    value: 'maintain' as const,
+    label: 'Maintain',
+    description: 'Stay at current weight',
+    calorieOffset: 0,
+  },
+  {
+    value: 'gain' as const,
+    label: 'Gain weight',
+    description: 'Calorie surplus',
+    calorieOffset: 300,
+  },
+] as const;
+
+export const MEAL_TYPES = [
+  { value: 'breakfast' as const, label: 'Breakfast', icon: 'sunny' },
+  { value: 'lunch' as const, label: 'Lunch', icon: 'partly-sunny' },
+  { value: 'dinner' as const, label: 'Dinner', icon: 'moon' },
+  { value: 'snack' as const, label: 'Snack', icon: 'nutrition' },
+] as const;
+
+export const DEFAULT_NOTIFICATION_SETTINGS = {
+  enabled: true,
+  mealReminders: true,
+  waterReminders: true,
+  weighInReminders: true,
+  mealTimes: {
+    breakfast: '08:00',
+    lunch: '12:30',
+    dinner: '19:00',
+  },
+  waterIntervalHours: 2,
+};
+
+/** Seed foods for offline / first-run experience */
+export const SEED_FOODS = [
+  {
+    name: 'Chicken breast, grilled',
+    brand: null,
+    barcode: null,
+    serving_size_g: 100,
+    calories: 165,
+    protein_g: 31,
+    carbs_g: 0,
+    fat_g: 3.6,
+    fiber_g: 0,
+    source: 'local' as const,
+  },
+  {
+    name: 'White rice, cooked',
+    brand: null,
+    barcode: null,
+    serving_size_g: 100,
+    calories: 130,
+    protein_g: 2.7,
+    carbs_g: 28,
+    fat_g: 0.3,
+    fiber_g: 0.4,
+    source: 'local' as const,
+  },
+  {
+    name: 'Egg, whole',
+    brand: null,
+    barcode: null,
+    serving_size_g: 50,
+    calories: 72,
+    protein_g: 6.3,
+    carbs_g: 0.4,
+    fat_g: 4.8,
+    fiber_g: 0,
+    source: 'local' as const,
+  },
+  {
+    name: 'Banana',
+    brand: null,
+    barcode: null,
+    serving_size_g: 118,
+    calories: 105,
+    protein_g: 1.3,
+    carbs_g: 27,
+    fat_g: 0.4,
+    fiber_g: 3.1,
+    source: 'local' as const,
+  },
+  {
+    name: 'Greek yogurt, plain',
+    brand: null,
+    barcode: null,
+    serving_size_g: 170,
+    calories: 100,
+    protein_g: 17,
+    carbs_g: 6,
+    fat_g: 0.7,
+    fiber_g: 0,
+    source: 'local' as const,
+  },
+  {
+    name: 'Oatmeal, cooked',
+    brand: null,
+    barcode: null,
+    serving_size_g: 234,
+    calories: 158,
+    protein_g: 5.5,
+    carbs_g: 27,
+    fat_g: 3.2,
+    fiber_g: 4,
+    source: 'local' as const,
+  },
+  {
+    name: 'Salmon, baked',
+    brand: null,
+    barcode: null,
+    serving_size_g: 100,
+    calories: 206,
+    protein_g: 22,
+    carbs_g: 0,
+    fat_g: 13,
+    fiber_g: 0,
+    source: 'local' as const,
+  },
+  {
+    name: 'Avocado',
+    brand: null,
+    barcode: null,
+    serving_size_g: 100,
+    calories: 160,
+    protein_g: 2,
+    carbs_g: 8.5,
+    fat_g: 14.7,
+    fiber_g: 6.7,
+    source: 'local' as const,
+  },
+  {
+    name: 'Almonds',
+    brand: null,
+    barcode: null,
+    serving_size_g: 28,
+    calories: 164,
+    protein_g: 6,
+    carbs_g: 6,
+    fat_g: 14,
+    fiber_g: 3.5,
+    source: 'local' as const,
+  },
+  {
+    name: 'Whole wheat bread',
+    brand: null,
+    barcode: null,
+    serving_size_g: 28,
+    calories: 69,
+    protein_g: 3.6,
+    carbs_g: 11.6,
+    fat_g: 1.1,
+    fiber_g: 1.9,
+    source: 'local' as const,
+  },
+];
