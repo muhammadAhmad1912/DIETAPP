@@ -16,6 +16,7 @@ import type {
 } from '@/types/models';
 import { createId, toDateKey } from '@/utils/dates';
 import { buildFoodSuggestions } from '@/utils/foodSuggestions';
+import { DUPLICATE_WEIGHT_TODAY } from '@/utils/weightTrend';
 
 async function ensureUserId(): Promise<string> {
   const existing = await cacheGet<string>(StorageKeys.LOCAL_USER_ID);
@@ -391,6 +392,13 @@ export const localRepo = {
   async addWeightLog(weight_kg: number, notes?: string): Promise<WeightLog> {
     const profile = await this.getProfile();
     if (!profile) throw new Error('Profile required');
+
+    const logs = await this.getWeightLogs();
+    const todayKey = toDateKey();
+    if (logs.some((l) => toDateKey(l.logged_at) === todayKey)) {
+      throw new Error(DUPLICATE_WEIGHT_TODAY);
+    }
+
     const now = new Date().toISOString();
     const log: WeightLog = {
       id: createId(),
@@ -400,7 +408,6 @@ export const localRepo = {
       notes: notes ?? null,
       created_at: now,
     };
-    const logs = await this.getWeightLogs();
     logs.unshift(log);
     await cacheSet(StorageKeys.WEIGHT_LOGS, logs);
 
@@ -416,6 +423,17 @@ export const localRepo = {
   async deleteWeightLog(id: string): Promise<void> {
     const logs = (await this.getWeightLogs()).filter((l) => l.id !== id);
     await cacheSet(StorageKeys.WEIGHT_LOGS, logs);
+
+    const profile = await this.getProfile();
+    if (!profile) return;
+    const latest = logs[0];
+    if (latest) {
+      await this.saveProfile({
+        ...profile,
+        weight_kg: latest.weight_kg,
+        updated_at: new Date().toISOString(),
+      });
+    }
   },
 
   async getWaterLogs(): Promise<WaterLog[]> {

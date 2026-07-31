@@ -19,6 +19,10 @@ import { Radius, Spacing } from '@/theme/tokens';
 import type { MainTabParamList, RootStackParamList } from '@/types/navigation';
 import { friendlyDateLabel, toDateKey } from '@/utils/dates';
 import { progressRatio } from '@/utils/nutrition';
+import {
+  analyzeWeightTrend,
+  buildWeightSeries,
+} from '@/utils/weightTrend';
 
 type DashboardNav = CompositeNavigationProp<
   BottomTabNavigationProp<MainTabParamList, 'Dashboard'>,
@@ -31,13 +35,10 @@ export function DashboardScreen() {
   const { today, goals, profile, addWater, selectedDate, weightLogs } =
     useAppData();
 
-  const weightDelta = useMemo(() => {
-    if (weightLogs.length < 2) return null;
-    const latest = weightLogs[0]?.weight_kg;
-    const previous = weightLogs[1]?.weight_kg;
-    if (latest == null || previous == null) return null;
-    return latest - previous;
-  }, [weightLogs]);
+  const weightTrend = useMemo(
+    () => analyzeWeightTrend(buildWeightSeries(weightLogs, 14)),
+    [weightLogs],
+  );
 
   if (!today || !goals || !profile) {
     return (
@@ -134,9 +135,11 @@ export function DashboardScreen() {
             </AppText>
             <AppText variant="caption" muted>
               {weighedToday
-                ? 'Logged today'
-                : weightDelta != null
-                  ? `${weightDelta > 0 ? '+' : ''}${weightDelta.toFixed(1)} kg vs last entry`
+                ? weightTrend
+                  ? `Logged today · ${weightTrend.label}`
+                  : 'Logged today'
+                : weightTrend
+                  ? `${weightTrend.label} · tap to log`
                   : 'Tap to log morning weigh-in'}
             </AppText>
           </View>
