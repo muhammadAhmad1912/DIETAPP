@@ -1,9 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Switch, View } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { CompositeNavigationProp } from '@react-navigation/native';
 import { Screen } from '@/components/ui/Screen';
 import { AppText } from '@/components/ui/AppText';
 import { Card } from '@/components/ui/Card';
@@ -21,19 +17,12 @@ import { isSupabaseConfigured } from '@/services/supabase/client';
 import { aiService } from '@/services/ai';
 import { Spacing, Radius } from '@/theme/tokens';
 import type { NotificationSettings, ThemePreference } from '@/types/models';
-import type { MainTabParamList, RootStackParamList } from '@/types/navigation';
-
-type SettingsNav = CompositeNavigationProp<
-  BottomTabNavigationProp<MainTabParamList, 'More'>,
-  NativeStackNavigationProp<RootStackParamList>
->;
 
 export function SettingsScreen() {
   const { colors, preference, setPreference, isDark } = useTheme();
   const { profile, goals, updateGoals, updateWaterGoal } = useAppData();
   const { user, signOut } = useAuth();
   const { sync, syncing, items } = useInventory();
-  const navigation = useNavigation<SettingsNav>();
   const [notifications, setNotifications] =
     useState<NotificationSettings | null>(null);
   const [calorieGoal, setCalorieGoal] = useState(
@@ -71,7 +60,10 @@ export function SettingsScreen() {
 
   return (
     <Screen scroll>
-      <AppText variant="title">More</AppText>
+      <AppText variant="title">Settings</AppText>
+      <AppText muted style={{ marginBottom: Spacing.sm }}>
+        Goals, appearance, and account
+      </AppText>
 
       <Card style={styles.card}>
         <AppText variant="subtitle">Account</AppText>
@@ -79,6 +71,12 @@ export function SettingsScreen() {
         <AppText muted variant="caption">
           {items.length} inventory items synced to Supabase
         </AppText>
+        {profile ? (
+          <AppText muted variant="caption">
+            Profile: {profile.age}y · {profile.height_cm}cm · {profile.weight_kg}
+            kg · {profile.goal}
+          </AppText>
+        ) : null}
         <Button
           title={syncing ? 'Syncing…' : 'Sync inventory now'}
           variant="secondary"
@@ -87,7 +85,7 @@ export function SettingsScreen() {
         />
         <Button
           title="Sign out"
-          variant="ghost"
+          variant="danger"
           onPress={() => {
             Alert.alert('Sign out?', undefined, [
               { text: 'Cancel', style: 'cancel' },
@@ -193,7 +191,10 @@ export function SettingsScreen() {
             const fat = Number(fatGoal);
             const water = Number(waterGoal);
             if (!calories || protein < 0 || carbs < 0 || fat < 0 || !water) {
-              Alert.alert('Invalid goals', 'Enter valid calorie, macro, and water values.');
+              Alert.alert(
+                'Invalid goals',
+                'Enter valid calorie, macro, and water values.',
+              );
               return;
             }
             void updateGoals({
@@ -207,12 +208,6 @@ export function SettingsScreen() {
           }}
           style={{ marginTop: Spacing.sm }}
         />
-        {profile ? (
-          <AppText muted variant="caption" style={{ marginTop: Spacing.sm }}>
-            Profile: {profile.age}y · {profile.height_cm}cm · {profile.weight_kg}
-            kg · {profile.goal}
-          </AppText>
-        ) : null}
       </Card>
 
       {notifications ? (
@@ -256,41 +251,6 @@ export function SettingsScreen() {
           />
         </Card>
       ) : null}
-
-      <Card style={styles.card}>
-        <AppText variant="subtitle">Shortcuts</AppText>
-        <Button
-          title="Favorites"
-          variant="secondary"
-          onPress={() => navigation.navigate('Favorites')}
-        />
-        <Button
-          title="Weight tracker"
-          variant="secondary"
-          onPress={() => navigation.navigate('Weight')}
-          style={{ marginTop: Spacing.sm }}
-        />
-        <Button
-          title="Inventory"
-          variant="secondary"
-          onPress={() => navigation.navigate('Inventory')}
-          style={{ marginTop: Spacing.sm }}
-        />
-        <Button
-          title="Food search"
-          variant="secondary"
-          onPress={() => navigation.navigate('FoodSearch')}
-          style={{ marginTop: Spacing.sm }}
-        />
-        <Button
-          title="Scan to inventory"
-          variant="secondary"
-          onPress={() =>
-            navigation.navigate('BarcodeScanner', { mode: 'inventory' })
-          }
-          style={{ marginTop: Spacing.sm }}
-        />
-      </Card>
 
       <Card style={styles.card}>
         <AppText variant="subtitle">Integrations</AppText>

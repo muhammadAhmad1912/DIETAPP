@@ -27,6 +27,7 @@ export function MacroBar({
 }: MacroBarProps) {
   const { colors } = useTheme();
   const ratio = progressRatio(current, goal);
+  const pct = Math.round(ratio * 100);
   const iconMap: Record<string, AppIconName> = {
     Protein: Icons.protein,
     Carbs: Icons.carbs,
@@ -46,28 +47,34 @@ export function MacroBar({
     >
       <View style={styles.row}>
         <View style={styles.labelRow}>
-          <View style={[styles.iconBubble, { backgroundColor: `${color}22` }]}>
+          <View style={[styles.iconBubble, { backgroundColor: `${color}28` }]}>
             <Icon
               name={icon ?? iconMap[label] ?? Icons.calories}
-              size={16}
+              size={15}
               color={color}
             />
           </View>
-          <AppText variant="bodyBold">{label}</AppText>
+          <View>
+            <AppText variant="bodyBold">{label}</AppText>
+            <AppText variant="caption" muted>
+              {Math.round(current)}/{Math.round(goal)}
+              {unit}
+            </AppText>
+          </View>
         </View>
-        <AppText variant="caption" muted>
-          {Math.round(current)}
-          {unit} / {Math.round(goal)}
-          {unit}
-        </AppText>
+        <View style={[styles.pctPill, { backgroundColor: `${color}22` }]}>
+          <AppText style={{ color, fontWeight: '800', fontSize: 12 }}>
+            {pct}%
+          </AppText>
+        </View>
       </View>
-      <View style={[styles.track, { backgroundColor: colors.surfaceMuted }]}>
+      <View style={[styles.track, { backgroundColor: colors.surface }]}>
         <View
           style={[
             styles.fill,
             {
               backgroundColor: color,
-              width: `${Math.round(ratio * 100)}%`,
+              width: `${Math.min(100, pct)}%`,
             },
           ]}
         />
@@ -79,7 +86,7 @@ export function MacroBar({
 const styles = StyleSheet.create({
   wrap: {
     gap: Spacing.sm,
-    borderRadius: Radius.md,
+    borderRadius: Radius.lg,
     borderWidth: StyleSheet.hairlineWidth,
     padding: Spacing.md,
   },
@@ -94,14 +101,19 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   iconBubble: {
-    width: 28,
-    height: 28,
-    borderRadius: Radius.full,
+    width: 32,
+    height: 32,
+    borderRadius: Radius.sm,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  pctPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: Radius.full,
+  },
   track: {
-    height: 10,
+    height: 8,
     borderRadius: Radius.full,
     overflow: 'hidden',
   },

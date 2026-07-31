@@ -65,7 +65,7 @@ export function BarChart({ data, height = 180, color, goal }: BarChartProps) {
         const x = padding + i * slot + (slot - barWidth) / 2;
         const y = height - padding - h;
         return (
-          <React.Fragment key={d.date}>
+          <React.Fragment key={`bar-${i}-${d.date}`}>
             <Rect
               x={x}
               y={y}

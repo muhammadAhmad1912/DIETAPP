@@ -9,6 +9,7 @@ import React, {
 import type {
   DailyTotals,
   Food,
+  FoodSuggestion,
   Goals,
   MealType,
   MealWithItems,
@@ -56,6 +57,10 @@ interface AppDataContextValue {
   /** Favorite/unfavorite any food (upserts inventory-sourced foods into the catalog first). */
   toggleFavoriteFood: (food: Food) => Promise<void>;
   searchFoods: (query: string) => Promise<Food[]>;
+  getSuggestedFoods: (
+    mealType: MealType,
+    limit?: number,
+  ) => Promise<FoodSuggestion[]>;
   upsertFood: typeof localRepo.upsertFood;
   updateGoals: (goals: Partial<Goals>) => Promise<void>;
   updateWaterGoal: (ml: number) => Promise<void>;
@@ -212,6 +217,17 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     [refresh],
   );
 
+  const searchFoods = useCallback(
+    (query: string) => localRepo.searchFoods(query),
+    [],
+  );
+
+  const getSuggestedFoods = useCallback(
+    (mealType: MealType, limit?: number) =>
+      localRepo.getSuggestedFoods(mealType, limit),
+    [],
+  );
+
   const value = useMemo(
     () => ({
       ready,
@@ -231,7 +247,8 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       addWeight,
       toggleFavorite,
       toggleFavoriteFood,
-      searchFoods: localRepo.searchFoods.bind(localRepo),
+      searchFoods,
+      getSuggestedFoods,
       upsertFood: localRepo.upsertFood.bind(localRepo),
       updateGoals,
       updateWaterGoal,
@@ -253,6 +270,8 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       addWeight,
       toggleFavorite,
       toggleFavoriteFood,
+      searchFoods,
+      getSuggestedFoods,
       updateGoals,
       updateWaterGoal,
     ],

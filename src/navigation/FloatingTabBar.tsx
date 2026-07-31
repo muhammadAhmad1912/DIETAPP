@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Platform,
   Pressable,
@@ -10,6 +10,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '@/components/ui/AppText';
 import { Icon, Icons, type AppIconName } from '@/components/ui/Icon';
 import { MealTypeSheet } from '@/components/ui/MealTypeSheet';
+import {
+  MoreShortcutsSheet,
+  type MoreShortcut,
+} from '@/components/ui/MoreShortcutsSheet';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Radius, Spacing } from '@/theme/tokens';
 import type { MainTabParamList } from '@/types/navigation';
@@ -27,22 +31,67 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const [mealSheetOpen, setMealSheetOpen] = useState(false);
+  const [moreSheetOpen, setMoreSheetOpen] = useState(false);
+
+  const parent = navigation.getParent();
 
   const openMeal = (mealType: MealType) => {
     setMealSheetOpen(false);
-    const parent = navigation.getParent();
-    if (parent) {
-      parent.navigate('AddMeal', { mealType });
-    }
+    parent?.navigate('AddMeal', { mealType });
   };
 
   const openScan = () => {
     setMealSheetOpen(false);
-    const parent = navigation.getParent();
-    if (parent) {
-      parent.navigate('BarcodeScanner', { mode: 'meal' });
-    }
+    parent?.navigate('BarcodeScanner', { mode: 'meal' });
   };
+
+  const shortcuts: MoreShortcut[] = useMemo(
+    () => [
+      {
+        key: 'favorites',
+        label: 'Favorites',
+        subtitle: 'Saved foods',
+        icon: Icons.star,
+        onPress: () => parent?.navigate('Favorites'),
+      },
+      {
+        key: 'weight',
+        label: 'Weight tracker',
+        subtitle: 'Morning weigh-in',
+        icon: Icons.weight,
+        onPress: () => navigation.navigate('Weight'),
+      },
+      {
+        key: 'inventory',
+        label: 'Inventory',
+        subtitle: 'Your food pantry',
+        icon: Icons.inventory,
+        onPress: () => navigation.navigate('Inventory'),
+      },
+      {
+        key: 'search',
+        label: 'Food search',
+        subtitle: 'Find foods to log',
+        icon: Icons.search,
+        onPress: () => parent?.navigate('FoodSearch'),
+      },
+      {
+        key: 'scan',
+        label: 'Scan to inventory',
+        subtitle: 'Add by barcode',
+        icon: Icons.scan,
+        onPress: () => parent?.navigate('BarcodeScanner', { mode: 'inventory' }),
+      },
+      {
+        key: 'settings',
+        label: 'Settings',
+        subtitle: 'Macros, theme, account & sign out',
+        icon: Icons.settings,
+        onPress: () => parent?.navigate('Settings'),
+      },
+    ],
+    [parent, navigation],
+  );
 
   const visibleRoutes = state.routes.filter(
     (r) => r.name !== 'Inventory' && r.name !== 'Weight',
@@ -59,7 +108,10 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
 
   const renderTab = (route: (typeof routes)[number]) => {
     const index = state.routes.findIndex((r) => r.key === route.key);
-    const focused = state.index === index;
+    const focused =
+      route.name === 'More'
+        ? moreSheetOpen
+        : !moreSheetOpen && state.index === index;
     const { options } = descriptors[route.key];
     const label =
       typeof options.tabBarLabel === 'string'
@@ -75,6 +127,10 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
         accessibilityRole="button"
         accessibilityState={focused ? { selected: true } : {}}
         onPress={() => {
+          if (route.name === 'More') {
+            setMoreSheetOpen(true);
+            return;
+          }
           const event = navigation.emit({
             type: 'tabPress',
             target: route.key,
@@ -158,6 +214,12 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
         onClose={() => setMealSheetOpen(false)}
         onSelectMeal={openMeal}
         onScanBarcode={openScan}
+      />
+
+      <MoreShortcutsSheet
+        visible={moreSheetOpen}
+        onClose={() => setMoreSheetOpen(false)}
+        shortcuts={shortcuts}
       />
     </>
   );

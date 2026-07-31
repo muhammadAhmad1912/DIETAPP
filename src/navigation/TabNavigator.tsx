@@ -5,7 +5,7 @@ import { DailyHistoryScreen } from '@/screens/history/DailyHistoryScreen';
 import { ProgressScreen } from '@/screens/progress/ProgressScreen';
 import { WeightTrackerScreen } from '@/screens/weight/WeightTrackerScreen';
 import { InventoryScreen } from '@/screens/inventory/InventoryScreen';
-import { SettingsScreen } from '@/screens/settings/SettingsScreen';
+import { MorePlaceholderScreen } from '@/screens/settings/MorePlaceholderScreen';
 import { FloatingTabBar } from '@/navigation/FloatingTabBar';
 import type { MainTabParamList } from '@/types/navigation';
 
@@ -32,7 +32,7 @@ export function TabNavigator() {
         component={InventoryScreen}
         options={{ tabBarButton: () => null }}
       />
-      <Tab.Screen name="More" component={SettingsScreen} />
+      <Tab.Screen name="More" component={MorePlaceholderScreen} />
     </Tab.Navigator>
   );
 }

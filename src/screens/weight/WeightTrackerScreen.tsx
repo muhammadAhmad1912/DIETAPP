@@ -23,10 +23,16 @@ export function WeightTrackerScreen() {
   const [saving, setSaving] = useState(false);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
 
-  const series = [...weightLogs]
-    .reverse()
-    .slice(-20)
-    .map((w) => ({ date: toDateKey(w.logged_at), value: w.weight_kg }));
+  // One point per day (latest log wins) so chart keys/dates stay unique
+  const series = (() => {
+    const byDay = new Map<string, number>();
+    for (const w of [...weightLogs].reverse()) {
+      byDay.set(toDateKey(w.logged_at), w.weight_kg);
+    }
+    return [...byDay.entries()]
+      .map(([date, value]) => ({ date, value }))
+      .slice(-20);
+  })();
 
   const alreadyLoggedToday = weightLogs.some(
     (w) => toDateKey(w.logged_at) === toDateKey(),

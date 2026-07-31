@@ -13,9 +13,11 @@ import { useInventory } from '@/contexts/InventoryContext';
 import { useMealDraft } from '@/contexts/MealDraftContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Icon, Icons } from '@/components/ui/Icon';
+import { MEAL_TYPES } from '@/constants/config';
 import { Spacing } from '@/theme/tokens';
-import type { Food } from '@/types/models';
+import type { Food, FoodSuggestion, MealType } from '@/types/models';
 import type { RootStackParamList } from '@/types/navigation';
+import { filterSuggestions, suggestionDetail } from '@/utils/foodSuggestions';
 
 function inventoryToFood(item: {
   id: string;
@@ -55,14 +57,33 @@ export function FoodSearchScreen() {
   const route = useRoute<RouteProp<RootStackParamList, 'FoodSearch'>>();
   const selectForMeal = Boolean(route.params?.selectForMeal);
   const favoritesMode = route.params?.mode === 'favorites';
-  const { searchFoods, toggleFavoriteFood, favorites, recentFoods } =
+  const mealType = (route.params?.mealType as MealType | undefined) ?? 'lunch';
+  const mealLabel =
+    MEAL_TYPES.find((m) => m.value === mealType)?.label ?? 'Meal';
+  const { searchFoods, toggleFavoriteFood, favorites, recentFoods, getSuggestedFoods } =
     useAppData();
   const { items: inventoryItems } = useInventory();
   const { addFood, adjustServingsByFoodId, getServingsForFood } = useMealDraft();
   const [query, setQuery] = useState('');
   const [searchActive, setSearchActive] = useState(favoritesMode);
   const [results, setResults] = useState<Food[]>([]);
+  const [suggestions, setSuggestions] = useState<FoodSuggestion[]>([]);
   const cartRef = useRef<View>(null);
+
+  useEffect(() => {
+    if (favoritesMode) {
+      setSuggestions([]);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      const next = await getSuggestedFoods(mealType, 8);
+      if (!cancelled) setSuggestions(next);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [mealType, getSuggestedFoods, recentFoods, favoritesMode]);
 
   useEffect(() => {
     if (!searchActive) return;
@@ -106,8 +127,8 @@ export function FoodSearchScreen() {
     return matched ? { ...food, is_favorite: true } : food;
   };
 
-  const onSelect = (food: Food) => {
-    addFood(food);
+  const onSelect = (food: Food, grams?: number) => {
+    addFood(food, grams);
     if (selectForMeal) {
       if (navigation.canGoBack()) navigation.goBack();
       else navigation.navigate('AddMeal');
@@ -116,25 +137,58 @@ export function FoodSearchScreen() {
     navigation.navigate('AddMeal');
   };
 
-  const onAddStay = (food: Food) => {
-    addFood(food);
+  const onAddStay = (food: Food, grams?: number) => {
+    addFood(food, grams);
   };
+
+  const suggestedIds = useMemo(
+    () => new Set(suggestions.map((s) => s.food.id)),
+    [suggestions],
+  );
+
+  const matchedSuggestions = useMemo(
+    () => filterSuggestions(suggestions, query),
+    [suggestions, query],
+  );
 
   const sections = useMemo(
     () => ({
-      favorites,
-      recent: recentFoods.filter((r) => !favorites.some((f) => f.id === r.id)),
+      favorites: favorites.filter((f) => !suggestedIds.has(f.id)),
+      recent: recentFoods.filter(
+        (r) => !favorites.some((f) => f.id === r.id) && !suggestedIds.has(r.id),
+      ),
       inventory: inventoryItems
         .slice(0, 10)
         .map(inventoryToFood)
         .filter(
           (inv) =>
+            !suggestedIds.has(inv.id) &&
             !favorites.some((f) => f.name === inv.name) &&
             !recentFoods.some((f) => f.name === inv.name),
         ),
     }),
-    [favorites, recentFoods, inventoryItems],
+    [favorites, recentFoods, inventoryItems, suggestedIds],
   );
+
+  const renderSuggestion = (s: FoodSuggestion) => {
+    const food = withFavoriteFlag(s.food);
+    return (
+      <FoodListItem
+        key={`sug-${food.id}`}
+        food={food}
+        detail={suggestionDetail(s)}
+        quantity={getServingsForFood(food.id)}
+        cartRef={cartRef}
+        onAdd={() =>
+          selectForMeal
+            ? onAddStay(food, s.typical_grams)
+            : onSelect(food, s.typical_grams)
+        }
+        onAdjust={(delta) => adjustServingsByFoodId(food.id, delta)}
+        onToggleFavorite={() => void toggleFavoriteFood(food)}
+      />
+    );
+  };
 
   const renderFood = (food: Food) => {
     const flagged = withFavoriteFlag(food);
@@ -215,22 +269,62 @@ export function FoodSearchScreen() {
       {searchActive ? (
         query.trim() ? (
           <>
+            {!favoritesMode && matchedSuggestions.length > 0 ? (
+              <>
+                <View style={[styles.sectionHead, { marginTop: Spacing.lg }]}>
+                  <Icon name={Icons.suggest} size={18} color={colors.primary} />
+                  <AppText variant="subtitle">
+                    Suggested for {mealLabel.toLowerCase()}
+                  </AppText>
+                </View>
+                {matchedSuggestions.map(renderSuggestion)}
+              </>
+            ) : null}
+
             <AppText variant="subtitle" style={styles.section}>
               Results
             </AppText>
-            {results.length === 0 ? (
-              <Card style={styles.empty}>
-                <AppText muted>No foods found.</AppText>
-              </Card>
+            {results.filter(
+              (f) => !matchedSuggestions.some((s) => s.food.id === f.id),
+            ).length === 0 ? (
+              matchedSuggestions.length === 0 ? (
+                <Card style={styles.empty}>
+                  <AppText muted>No foods found.</AppText>
+                </Card>
+              ) : null
             ) : (
-              results.map(renderFood)
+              results
+                .filter(
+                  (f) => !matchedSuggestions.some((s) => s.food.id === f.id),
+                )
+                .map(renderFood)
             )}
           </>
         ) : (
           <>
-            {!favoritesMode ? (
+            {!favoritesMode && suggestions.length > 0 ? (
               <>
                 <View style={[styles.sectionHead, { marginTop: Spacing.lg }]}>
+                  <Icon name={Icons.suggest} size={18} color={colors.primary} />
+                  <AppText variant="subtitle">
+                    Suggested for {mealLabel.toLowerCase()}
+                  </AppText>
+                </View>
+                {suggestions.map(renderSuggestion)}
+              </>
+            ) : null}
+
+            {!favoritesMode ? (
+              <>
+                <View
+                  style={[
+                    styles.sectionHead,
+                    {
+                      marginTop:
+                        suggestions.length > 0 ? Spacing.md : Spacing.lg,
+                    },
+                  ]}
+                >
                   <Icon name={Icons.star} size={18} color={colors.primary} />
                   <AppText variant="subtitle">Favorites</AppText>
                 </View>
@@ -284,7 +378,7 @@ export function FoodSearchScreen() {
           <Icon name={Icons.search} size={28} color={colors.primary} />
           <AppText variant="bodyBold">Start searching</AppText>
           <AppText muted style={{ textAlign: 'center' }}>
-            Tap the search bar to reveal favorites, recent foods, and inventory.
+            Tap search for personalized suggestions, favorites, and inventory.
           </AppText>
         </Card>
       )}

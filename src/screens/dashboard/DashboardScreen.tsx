@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
@@ -17,7 +17,7 @@ import { useAppData } from '@/contexts/AppDataContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Radius, Spacing } from '@/theme/tokens';
 import type { MainTabParamList, RootStackParamList } from '@/types/navigation';
-import { friendlyDateLabel } from '@/utils/dates';
+import { friendlyDateLabel, toDateKey } from '@/utils/dates';
 import { progressRatio } from '@/utils/nutrition';
 
 type DashboardNav = CompositeNavigationProp<
@@ -28,7 +28,16 @@ type DashboardNav = CompositeNavigationProp<
 export function DashboardScreen() {
   const { colors } = useTheme();
   const navigation = useNavigation<DashboardNav>();
-  const { today, goals, profile, addWater, selectedDate } = useAppData();
+  const { today, goals, profile, addWater, selectedDate, weightLogs } =
+    useAppData();
+
+  const weightDelta = useMemo(() => {
+    if (weightLogs.length < 2) return null;
+    const latest = weightLogs[0]?.weight_kg;
+    const previous = weightLogs[1]?.weight_kg;
+    if (latest == null || previous == null) return null;
+    return latest - previous;
+  }, [weightLogs]);
 
   if (!today || !goals || !profile) {
     return (
@@ -39,6 +48,13 @@ export function DashboardScreen() {
   }
 
   const remaining = Math.max(0, goals.calorie_goal - today.calories);
+  const caloriePct = Math.round(
+    progressRatio(today.calories, goals.calorie_goal) * 100,
+  );
+  const currentWeight = profile.weight_kg;
+  const weighedToday = weightLogs.some(
+    (w) => toDateKey(w.logged_at) === toDateKey(selectedDate),
+  );
 
   return (
     <Screen scroll>
@@ -73,11 +89,64 @@ export function DashboardScreen() {
           color={colors.primary}
           label="Calories"
           value={String(Math.round(today.calories))}
-          sublabel={`${remaining} left of ${goals.calorie_goal}`}
+          sublabel={`${remaining} left`}
           icon={Icons.calories}
         />
+        <View style={styles.heroStats}>
+          <View style={[styles.statChip, { backgroundColor: colors.surface }]}>
+            <AppText variant="caption" muted>
+              Goal
+            </AppText>
+            <AppText variant="bodyBold" style={{ color: colors.primary }}>
+              {goals.calorie_goal}
+            </AppText>
+          </View>
+          <View style={[styles.statChip, { backgroundColor: colors.surface }]}>
+            <AppText variant="caption" muted>
+              Eaten
+            </AppText>
+            <AppText variant="bodyBold" style={{ color: colors.primary }}>
+              {Math.round(today.calories)}
+            </AppText>
+          </View>
+          <View style={[styles.statChip, { backgroundColor: colors.primaryMuted }]}>
+            <AppText variant="caption" muted>
+              Progress
+            </AppText>
+            <AppText variant="bodyBold" style={{ color: colors.primary }}>
+              {caloriePct}%
+            </AppText>
+          </View>
+        </View>
       </Card>
 
+      <Pressable onPress={() => navigation.navigate('Weight')}>
+        <Card tint={colors.cardCalories} style={styles.weightCard}>
+          <View style={[styles.weightIcon, { backgroundColor: colors.primaryMuted }]}>
+            <Icon name={Icons.weight} size={22} color={colors.primary} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <AppText variant="caption" muted>
+              Current weight
+            </AppText>
+            <AppText variant="title" style={{ color: colors.primary, fontSize: 22 }}>
+              {currentWeight.toFixed(1)} kg
+            </AppText>
+            <AppText variant="caption" muted>
+              {weighedToday
+                ? 'Logged today'
+                : weightDelta != null
+                  ? `${weightDelta > 0 ? '+' : ''}${weightDelta.toFixed(1)} kg vs last entry`
+                  : 'Tap to log morning weigh-in'}
+            </AppText>
+          </View>
+          <Icon name={Icons.chevron} size={18} color={colors.primary} />
+        </Card>
+      </Pressable>
+
+      <AppText variant="subtitle" style={styles.sectionLabel}>
+        Macros
+      </AppText>
       <View style={styles.macros}>
         <MacroBar
           label="Protein"
@@ -105,7 +174,7 @@ export function DashboardScreen() {
         />
       </View>
 
-      <View style={{ marginTop: Spacing.lg }}>
+      <View style={{ marginTop: Spacing.md }}>
         <WaterTracker
           currentMl={today.water_ml}
           goalMl={profile.water_goal_ml}
@@ -126,7 +195,7 @@ export function DashboardScreen() {
       </View>
 
       {today.meals.length === 0 ? (
-        <Card tint={colors.cardMeal} style={styles.empty}>
+        <Card tint={colors.cardCalories} style={styles.empty}>
           <Icon name={Icons.meals} size={32} color={colors.primary} />
           <AppText variant="bodyBold" style={{ marginTop: Spacing.sm }}>
             No meals yet
@@ -177,7 +246,36 @@ const styles = StyleSheet.create({
   heroCard: {
     alignItems: 'center',
     paddingVertical: Spacing.lg,
+    marginBottom: Spacing.sm,
+    gap: Spacing.md,
+  },
+  heroStats: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    width: '100%',
+  },
+  statChip: {
+    flex: 1,
+    borderRadius: Radius.md,
+    paddingVertical: Spacing.sm,
+    alignItems: 'center',
+    gap: 2,
+  },
+  weightCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
     marginBottom: Spacing.md,
+  },
+  weightIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: Radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sectionLabel: {
+    marginBottom: Spacing.sm,
   },
   macros: { gap: Spacing.sm },
   mealsHeader: {

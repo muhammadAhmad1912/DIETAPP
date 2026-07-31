@@ -29,17 +29,15 @@ export function ProgressScreen() {
     void localRepo.getWeeklyCalorieSeries().then(setCalorieSeries);
   }, []);
 
-  const weightSeries = useMemo(
-    () =>
-      [...weightLogs]
-        .reverse()
-        .slice(-14)
-        .map((w) => ({
-          date: toDateKey(w.logged_at),
-          value: w.weight_kg,
-        })),
-    [weightLogs],
-  );
+  const weightSeries = useMemo(() => {
+    const byDay = new Map<string, number>();
+    for (const w of [...weightLogs].reverse()) {
+      byDay.set(toDateKey(w.logged_at), w.weight_kg);
+    }
+    return [...byDay.entries()]
+      .map(([date, value]) => ({ date, value }))
+      .slice(-14);
+  }, [weightLogs]);
 
   const avgCalories =
     calorieSeries.length === 0

@@ -17,26 +17,34 @@ interface WaterTrackerProps {
 export function WaterTracker({ currentMl, goalMl, onAdd }: WaterTrackerProps) {
   const { colors } = useTheme();
   const ratio = progressRatio(currentMl, goalMl);
+  const pct = Math.round(ratio * 100);
 
   return (
-    <Card tint={colors.cardWater}>
+    <Card tint={colors.cardWater} style={styles.card}>
       <View style={styles.header}>
         <View style={styles.titleRow}>
-          <View style={[styles.icon, { backgroundColor: `${colors.water}33` }]}>
-            <Icon name={Icons.water} size={18} color={colors.water} />
+          <View style={[styles.icon, { backgroundColor: colors.primaryMuted }]}>
+            <Icon name={Icons.water} size={18} color={colors.primary} />
           </View>
-          <AppText variant="subtitle">Water</AppText>
+          <View>
+            <AppText variant="subtitle">Water</AppText>
+            <AppText variant="caption" muted>
+              {currentMl} / {goalMl} ml
+            </AppText>
+          </View>
         </View>
-        <AppText variant="caption" muted>
-          {currentMl} / {goalMl} ml
-        </AppText>
+        <View style={[styles.pctPill, { backgroundColor: colors.primaryMuted }]}>
+          <AppText style={{ color: colors.primary, fontWeight: '800' }}>
+            {pct}%
+          </AppText>
+        </View>
       </View>
       <View style={[styles.track, { backgroundColor: colors.surface }]}>
         <View
           style={[
             styles.fill,
             {
-              width: `${Math.round(ratio * 100)}%`,
+              width: `${Math.min(100, pct)}%`,
               backgroundColor: colors.primary,
             },
           ]}
@@ -45,15 +53,18 @@ export function WaterTracker({ currentMl, goalMl, onAdd }: WaterTrackerProps) {
       <View style={styles.actions}>
         <Pressable
           onPress={() => onAdd(WATER_INCREMENT_ML)}
-          style={[styles.chip, { backgroundColor: colors.surface }]}
+          style={[styles.chip, { backgroundColor: colors.primary }]}
         >
-          <AppText style={{ color: colors.primary, fontWeight: '700' }}>
+          <AppText style={{ color: colors.textInverse, fontWeight: '700' }}>
             +{WATER_INCREMENT_ML} ml
           </AppText>
         </Pressable>
         <Pressable
           onPress={() => onAdd(500)}
-          style={[styles.chip, { backgroundColor: colors.surface }]}
+          style={[
+            styles.chip,
+            { backgroundColor: colors.surface, borderColor: colors.primary, borderWidth: 1.5 },
+          ]}
         >
           <AppText style={{ color: colors.primary, fontWeight: '700' }}>
             +500 ml
@@ -65,22 +76,27 @@ export function WaterTracker({ currentMl, goalMl, onAdd }: WaterTrackerProps) {
 }
 
 const styles = StyleSheet.create({
+  card: { gap: Spacing.sm },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.sm,
   },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   icon: {
-    width: 34,
-    height: 34,
-    borderRadius: Radius.full,
+    width: 36,
+    height: 36,
+    borderRadius: Radius.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  pctPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: Radius.full,
+  },
   track: {
-    height: 14,
+    height: 10,
     borderRadius: Radius.full,
     overflow: 'hidden',
   },
@@ -88,7 +104,7 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: 'row',
     gap: Spacing.sm,
-    marginTop: Spacing.md,
+    marginTop: Spacing.xs,
   },
   chip: {
     paddingHorizontal: Spacing.md,

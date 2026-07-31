@@ -17,7 +17,10 @@ interface MealTypeSheetProps {
   visible: boolean;
   onClose: () => void;
   onSelectMeal: (mealType: MealType) => void;
-  onScanBarcode: () => void;
+  /** When omitted, the barcode row is hidden (e.g. changing meal type). */
+  onScanBarcode?: () => void;
+  title?: string;
+  subtitle?: string;
 }
 
 const mealIcons: Record<MealType, typeof Icons.breakfast> = {
@@ -32,6 +35,8 @@ export function MealTypeSheet({
   onClose,
   onSelectMeal,
   onScanBarcode,
+  title = 'Add meal',
+  subtitle = 'Choose a meal type or scan a barcode',
 }: MealTypeSheetProps) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
@@ -51,10 +56,10 @@ export function MealTypeSheet({
         >
           <View style={[styles.handle, { backgroundColor: colors.border }]} />
           <AppText variant="title" style={{ marginBottom: Spacing.sm }}>
-            Add meal
+            {title}
           </AppText>
           <AppText muted style={{ marginBottom: Spacing.md }}>
-            Choose a meal type or scan a barcode
+            {subtitle}
           </AppText>
 
           {MEAL_TYPES.map((meal) => (
@@ -75,21 +80,23 @@ export function MealTypeSheet({
             </Pressable>
           ))}
 
-          <Pressable
-            onPress={onScanBarcode}
-            style={({ pressed }) => [
-              styles.row,
-              {
-                backgroundColor: pressed ? colors.primaryMuted : colors.cardCalories,
-                marginTop: Spacing.sm,
-              },
-            ]}
-          >
-            <View style={[styles.iconWrap, { backgroundColor: colors.surface }]}>
-              <Icon name={Icons.scan} size={22} color={colors.primary} />
-            </View>
-            <AppText variant="bodyBold">Scan barcode</AppText>
-          </Pressable>
+          {onScanBarcode ? (
+            <Pressable
+              onPress={onScanBarcode}
+              style={({ pressed }) => [
+                styles.row,
+                {
+                  backgroundColor: pressed ? colors.primaryMuted : colors.cardCalories,
+                  marginTop: Spacing.sm,
+                },
+              ]}
+            >
+              <View style={[styles.iconWrap, { backgroundColor: colors.surface }]}>
+                <Icon name={Icons.scan} size={22} color={colors.primary} />
+              </View>
+              <AppText variant="bodyBold">Scan barcode</AppText>
+            </Pressable>
+          ) : null}
         </Pressable>
       </Pressable>
     </Modal>

@@ -89,9 +89,9 @@ export function LineChart({
         strokeLinejoin="round"
         strokeLinecap="round"
       />
-      {points.map((p) => (
+      {points.map((p, i) => (
         <Circle
-          key={p.date}
+          key={`point-${i}-${p.date}`}
           cx={p.x}
           cy={p.y}
           r={4.5}
@@ -103,7 +103,7 @@ export function LineChart({
       {points.map((p, i) =>
         i === 0 || i === points.length - 1 || i === Math.floor(points.length / 2) ? (
           <SvgText
-            key={`label-${p.date}`}
+            key={`label-${i}-${p.date}`}
             x={p.x}
             y={height - 8}
             fontSize="10"

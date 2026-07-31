@@ -3,6 +3,7 @@ import { cacheGet, cacheSet } from '@/services/storage/cache';
 import { StorageKeys } from '@/services/storage/keys';
 import type {
   Food,
+  FoodSuggestion,
   Goals,
   Meal,
   MealItem,
@@ -14,6 +15,7 @@ import type {
   MealType,
 } from '@/types/models';
 import { createId, toDateKey } from '@/utils/dates';
+import { buildFoodSuggestions } from '@/utils/foodSuggestions';
 
 async function ensureUserId(): Promise<string> {
   const existing = await cacheGet<string>(StorageKeys.LOCAL_USER_ID);
@@ -231,6 +233,19 @@ export const localRepo = {
           (a.last_used_at ? Date.parse(a.last_used_at) : 0),
       )
       .slice(0, limit);
+  },
+
+  /** Frequent foods for a meal type, with typical serving sizes from history. */
+  async getSuggestedFoods(
+    mealType: MealType,
+    limit = 8,
+  ): Promise<FoodSuggestion[]> {
+    const [meals, items, foods] = await Promise.all([
+      this.getMeals(),
+      this.getMealItems(),
+      this.getFoods(),
+    ]);
+    return buildFoodSuggestions(mealType, meals, items, foods, limit);
   },
 
   async markFoodUsed(foodId: string): Promise<void> {

@@ -30,6 +30,8 @@ interface FoodListItemProps {
   /** Destination for the fly-to-cart animation. */
   cartRef?: RefObject<RNView | null>;
   rightLabel?: string;
+  /** Optional muted line under the name (overrides default brand/kcal/serving). */
+  detail?: string;
   /** @deprecated Prefer onAdd + quantity */
   onPress?: () => void;
 }
@@ -44,6 +46,7 @@ export function FoodListItem({
   onToggleFavorite,
   cartRef,
   rightLabel = '+ Add',
+  detail,
   onPress,
 }: FoodListItemProps) {
   const { colors } = useTheme();
@@ -162,8 +165,8 @@ export function FoodListItem({
               {food.name}
             </AppText>
             <AppText variant="caption" muted numberOfLines={1}>
-              {food.brand ? `${food.brand} · ` : ''}
-              {Math.round(food.calories)} kcal · {food.serving_size_g}g
+              {detail ??
+                `${food.brand ? `${food.brand} · ` : ''}${Math.round(food.calories)} kcal · ${food.serving_size_g}g`}
             </AppText>
           </Pressable>
           {onToggleFavorite ? (

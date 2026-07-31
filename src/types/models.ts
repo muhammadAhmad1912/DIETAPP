@@ -58,6 +58,15 @@ export interface Food {
   updated_at: string;
 }
 
+/** Personalized pick derived from local meal history for a meal type. */
+export interface FoodSuggestion {
+  food: Food;
+  /** Median grams eaten when this food was logged for the meal type. */
+  typical_grams: number;
+  times_eaten: number;
+  last_eaten_at: string;
+}
+
 export interface Meal {
   id: string;
   profile_id: string;
