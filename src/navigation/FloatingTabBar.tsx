@@ -55,6 +55,20 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
         onPress: () => parent?.navigate('CanIEatThis'),
       },
       {
+        key: 'planner',
+        label: 'Meal planner',
+        subtitle: 'Plan meals by day',
+        icon: Icons.planner,
+        onPress: () => parent?.navigate('MealPlanner'),
+      },
+      {
+        key: 'grocery',
+        label: 'Grocery list',
+        subtitle: 'Shop from your meal plan',
+        icon: Icons.grocery,
+        onPress: () => parent?.navigate('GroceryList'),
+      },
+      {
         key: 'favorites',
         label: 'Favorites',
         subtitle: 'Saved foods',

@@ -150,6 +150,52 @@ export interface NotificationSettings {
   waterIntervalHours: number;
 }
 
+/** One food entry inside a planned meal slot. */
+export interface PlannedFoodItem {
+  id: string;
+  food_id: string | null;
+  food_name: string;
+  grams: number;
+  calories: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+  serving_size_g: number;
+}
+
+/** Saved meal plan for a single calendar day. */
+export interface DayMealPlan {
+  date: string;
+  slots: Record<MealType, PlannedFoodItem[]>;
+  updated_at: string;
+}
+
+/** Aggregated shopping item built from meal plans. */
+export interface GroceryItem {
+  /** Stable key: food_id or normalized name. */
+  id: string;
+  food_id: string | null;
+  name: string;
+  total_grams: number;
+  serving_size_g: number;
+  /** How many planned occurrences were merged. */
+  source_count: number;
+  /** Plan dates that contributed to this item. */
+  dates: string[];
+  checked: boolean;
+  /** True when the user added this outside the meal planner. */
+  manual?: boolean;
+  /** Optional free-text note / quantity (for manual items). */
+  note?: string | null;
+}
+
+export interface GroceryList {
+  generated_at: string;
+  range_start: string;
+  range_end: string;
+  items: GroceryItem[];
+}
+
 export interface MacroNutrients {
   calories: number;
   protein_g: number;

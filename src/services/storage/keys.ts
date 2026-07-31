@@ -13,6 +13,8 @@ export const StorageKeys = {
   ONBOARDING_DRAFT: '@diet/onboarding_draft',
   LOCAL_USER_ID: '@diet/local_user_id',
   INVENTORY: '@inventory/items',
+  MEAL_PLANS: '@diet/meal_plans',
+  GROCERY_LIST: '@diet/grocery_list',
   KEEP_SIGNED_IN: '@auth/keep_signed_in',
 } as const;
 

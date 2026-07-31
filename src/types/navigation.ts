@@ -21,6 +21,8 @@ export type RootStackParamList = {
   Settings: undefined;
   Favorites: undefined;
   CanIEatThis: { foodId?: string; barcode?: string } | undefined;
+  MealPlanner: undefined;
+  GroceryList: { regenerate?: boolean } | undefined;
   AddInventoryItem: { barcode?: string } | undefined;
   InventoryItemDetail: { itemId: string };
 };

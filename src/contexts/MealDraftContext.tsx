@@ -18,6 +18,8 @@ export type MealDraftItem = {
 interface MealDraftContextValue {
   items: MealDraftItem[];
   addFood: (food: Food, grams?: number) => void;
+  /** Replace draft with these entries (used when loading a planned meal). */
+  loadEntries: (entries: Array<{ food: Food; grams: number }>) => void;
   setItemGrams: (key: string, grams: number) => void;
   adjustServings: (key: string, delta: number) => void;
   adjustServingsByFoodId: (foodId: string, delta: number) => void;
@@ -65,6 +67,18 @@ export function MealDraftProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  const loadEntries = useCallback(
+    (entries: Array<{ food: Food; grams: number }>) => {
+      setItems(
+        entries.map(({ food, grams }) => ({
+          key: nextKey(),
+          food,
+          grams: grams > 0 ? grams : food.serving_size_g,
+        })),
+      );
+    },
+    [],
+  );
   const setItemGrams = useCallback((key: string, grams: number) => {
     setItems((prev) =>
       prev.map((item) =>
@@ -135,6 +149,7 @@ export function MealDraftProvider({ children }: { children: React.ReactNode }) {
     () => ({
       items,
       addFood,
+      loadEntries,
       setItemGrams,
       adjustServings,
       adjustServingsByFoodId,
@@ -146,6 +161,7 @@ export function MealDraftProvider({ children }: { children: React.ReactNode }) {
     [
       items,
       addFood,
+      loadEntries,
       setItemGrams,
       adjustServings,
       adjustServingsByFoodId,

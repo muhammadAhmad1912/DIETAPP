@@ -21,6 +21,8 @@ import { AddInventoryItemScreen } from '@/screens/inventory/AddInventoryItemScre
 import { InventoryItemDetailScreen } from '@/screens/inventory/InventoryItemDetailScreen';
 import { FavoritesScreen } from '@/screens/foods/FavoritesScreen';
 import { CanIEatThisScreen } from '@/screens/foods/CanIEatThisScreen';
+import { MealPlannerScreen } from '@/screens/meals/MealPlannerScreen';
+import { GroceryListScreen } from '@/screens/meals/GroceryListScreen';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAppData } from '@/contexts/AppDataContext';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -148,6 +150,16 @@ export function RootNavigator() {
               name="CanIEatThis"
               component={CanIEatThisScreen}
               options={{ title: 'Can I eat this?' }}
+            />
+            <Stack.Screen
+              name="MealPlanner"
+              component={MealPlannerScreen}
+              options={{ title: 'Meal planner' }}
+            />
+            <Stack.Screen
+              name="GroceryList"
+              component={GroceryListScreen}
+              options={{ title: 'Grocery list' }}
             />
           </>
         )}

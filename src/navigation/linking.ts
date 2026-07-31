@@ -48,6 +48,8 @@ export const linking: LinkingOptions<RootStackParamList> = {
       Settings: 'settings',
       Favorites: 'favorites',
       CanIEatThis: 'can-i-eat',
+      MealPlanner: 'meal-planner',
+      GroceryList: 'grocery-list',
       AddInventoryItem: 'inventory/add',
     },
   },

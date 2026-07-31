@@ -10,17 +10,21 @@ import { Card } from '@/components/ui/Card';
 import { Icon, Icons } from '@/components/ui/Icon';
 import { SuccessModal } from '@/components/ui/SuccessModal';
 import { MealTypeSheet } from '@/components/ui/MealTypeSheet';
+import { PlannedMealPrompt, type PlannedMealChoice } from '@/components/ui/PlannedMealPrompt';
 import { FoodListItem } from '@/components/foods/FoodListItem';
 import { useAppData } from '@/contexts/AppDataContext';
 import { useInventory } from '@/contexts/InventoryContext';
 import { useMealDraft } from '@/contexts/MealDraftContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { MEAL_TYPES } from '@/constants/config';
+import { getDayPlan } from '@/services/mealPlan/mealPlan';
 import { Radius, Spacing } from '@/theme/tokens';
-import type { Food, FoodSuggestion, MealType } from '@/types/models';
+import type { Food, FoodSuggestion, MealType, PlannedFoodItem } from '@/types/models';
 import type { RootStackParamList } from '@/types/navigation';
 import { filterSuggestions, suggestionDetail } from '@/utils/foodSuggestions';
+import { plannedItemToDraftEntry } from '@/utils/plannedMeal';
 import { scaleByGrams } from '@/utils/nutrition';
+import { toDateKey } from '@/utils/dates';
 
 function inventoryToFood(item: {
   id: string;
@@ -70,6 +74,7 @@ export function AddMealScreen() {
   const {
     items,
     addFood,
+    loadEntries,
     adjustServings,
     adjustServingsByFoodId,
     getServingsForFood,
@@ -79,6 +84,7 @@ export function AddMealScreen() {
   } = useMealDraft();
 
   const cartRef = useRef<View>(null);
+  const planDate = route.params?.date ?? toDateKey();
 
   const [mealType, setMealType] = useState<MealType>(
     (route.params?.mealType as MealType) || 'lunch',
@@ -90,6 +96,8 @@ export function AddMealScreen() {
   const [saving, setSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [mealTypeSheetOpen, setMealTypeSheetOpen] = useState(false);
+  const [plannedItems, setPlannedItems] = useState<PlannedFoodItem[]>([]);
+  const [planPromptOpen, setPlanPromptOpen] = useState(false);
 
   React.useEffect(() => {
     if (route.params?.mealType) {
@@ -97,6 +105,37 @@ export function AddMealScreen() {
     }
   }, [route.params?.mealType]);
 
+  // Ask about planned meal when opening / changing meal type
+  React.useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const plan = await getDayPlan(planDate);
+      const slot = plan.slots[mealType] ?? [];
+      if (cancelled) return;
+      if (slot.length > 0) {
+        setPlannedItems(slot);
+        setPlanPromptOpen(true);
+      } else {
+        setPlannedItems([]);
+        setPlanPromptOpen(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [mealType, planDate]);
+
+  const applyPlannedChoice = (choice: PlannedMealChoice) => {
+    setPlanPromptOpen(false);
+    if (choice === 'different') {
+      clear();
+      setSearchActive(true);
+      return;
+    }
+    const entries = plannedItems.map(plannedItemToDraftEntry);
+    loadEntries(entries);
+    setSearchActive(choice === 'addMore');
+  };
   React.useEffect(() => {
     let cancelled = false;
     void (async () => {
@@ -545,6 +584,14 @@ export function AddMealScreen() {
           setMealType(next);
           setMealTypeSheetOpen(false);
         }}
+      />
+      <PlannedMealPrompt
+        visible={planPromptOpen && plannedItems.length > 0}
+        mealLabel={
+          MEAL_TYPES.find((m) => m.value === mealType)?.label ?? 'Meal'
+        }
+        items={plannedItems}
+        onChoice={applyPlannedChoice}
       />
     </Screen>
   );

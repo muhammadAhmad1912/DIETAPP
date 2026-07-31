@@ -20,7 +20,7 @@ export function Screen({
   const content = (
     <View
       style={[
-        styles.content,
+        scroll ? styles.scrollInner : styles.content,
         padded && styles.padded,
         style,
       ]}
@@ -40,6 +40,7 @@ export function Screen({
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
+          nestedScrollEnabled
         >
           {content}
         </ScrollView>
@@ -53,6 +54,8 @@ export function Screen({
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   content: { flex: 1 },
+  /** Avoid flex:1 inside ScrollView — it blocks scrolling when content is tall. */
+  scrollInner: { flexGrow: 0 },
   padded: {
     paddingHorizontal: Spacing.md,
     paddingTop: Spacing.md,
