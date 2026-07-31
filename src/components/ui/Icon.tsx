@@ -33,6 +33,8 @@ export const Icons = {
   dinner: 'moon' as AppIconName,
   snack: 'cafe' as AppIconName,
   check: 'checkmark-circle' as AppIconName,
+  warning: 'warning' as AppIconName,
+  help: 'help-circle' as AppIconName,
   close: 'close' as AppIconName,
   remove: 'remove' as AppIconName,
   edit: 'create-outline' as AppIconName,

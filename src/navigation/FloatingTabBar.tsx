@@ -48,6 +48,13 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
   const shortcuts: MoreShortcut[] = useMemo(
     () => [
       {
+        key: 'canIEat',
+        label: 'Can I eat this?',
+        subtitle: 'Check food vs remaining macros',
+        icon: Icons.help,
+        onPress: () => parent?.navigate('CanIEatThis'),
+      },
+      {
         key: 'favorites',
         label: 'Favorites',
         subtitle: 'Saved foods',

@@ -95,7 +95,7 @@ export function BarcodeScannerScreen() {
     try {
       const product = await lookupBarcode(data);
 
-      if (mode === 'meal') {
+      if (mode === 'meal' || mode === 'canIEat') {
         const food = await toFood(data, product);
         if (!food) {
           Alert.alert('Not found', 'No product found for this barcode.', [
@@ -107,6 +107,14 @@ export function BarcodeScannerScreen() {
               },
             },
           ]);
+          return;
+        }
+
+        if (mode === 'canIEat') {
+          navigation.replace('CanIEatThis', {
+            foodId: food.id,
+            barcode: food.barcode ?? data,
+          });
           return;
         }
 
@@ -220,7 +228,11 @@ export function BarcodeScannerScreen() {
             {status}
           </AppText>
           <AppText style={{ color: '#fff', opacity: 0.85, marginTop: 4 }}>
-            {mode === 'inventory' ? 'Adds to inventory automatically' : 'Adds to current meal'}
+            {mode === 'inventory'
+              ? 'Adds to inventory automatically'
+              : mode === 'canIEat'
+                ? 'Checks against today’s remaining macros'
+                : 'Adds to current meal'}
           </AppText>
           <Button
             title="Cancel"

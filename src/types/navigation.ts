@@ -12,12 +12,15 @@ export type RootStackParamList = {
         mode?: 'meal' | 'favorites';
       }
     | undefined;
-  BarcodeScanner: { mealId?: string; mode?: 'inventory' | 'meal' } | undefined;
+  BarcodeScanner:
+    | { mealId?: string; mode?: 'inventory' | 'meal' | 'canIEat' }
+    | undefined;
   MealDetail: { mealId: string };
   DayDetail: { date: string };
   QuickAdd: { foodId?: string; barcode?: string } | undefined;
   Settings: undefined;
   Favorites: undefined;
+  CanIEatThis: { foodId?: string; barcode?: string } | undefined;
   AddInventoryItem: { barcode?: string } | undefined;
   InventoryItemDetail: { itemId: string };
 };

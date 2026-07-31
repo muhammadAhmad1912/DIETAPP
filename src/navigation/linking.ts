@@ -47,6 +47,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
       Onboarding: 'onboarding',
       Settings: 'settings',
       Favorites: 'favorites',
+      CanIEatThis: 'can-i-eat',
       AddInventoryItem: 'inventory/add',
     },
   },

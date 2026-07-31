@@ -20,6 +20,7 @@ import { SettingsScreen } from '@/screens/settings/SettingsScreen';
 import { AddInventoryItemScreen } from '@/screens/inventory/AddInventoryItemScreen';
 import { InventoryItemDetailScreen } from '@/screens/inventory/InventoryItemDetailScreen';
 import { FavoritesScreen } from '@/screens/foods/FavoritesScreen';
+import { CanIEatThisScreen } from '@/screens/foods/CanIEatThisScreen';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAppData } from '@/contexts/AppDataContext';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -142,6 +143,11 @@ export function RootNavigator() {
               name="Favorites"
               component={FavoritesScreen}
               options={{ title: 'Favorites' }}
+            />
+            <Stack.Screen
+              name="CanIEatThis"
+              component={CanIEatThisScreen}
+              options={{ title: 'Can I eat this?' }}
             />
           </>
         )}
